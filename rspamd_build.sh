@@ -155,15 +155,15 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 		fi
 
 		case $d in
-			debian-jessie) REAL_DEPS="$DEPS dh-systemd libluajit-5.1-dev" HYPERSCAN="yes";;
-			debian-wheezy) REAL_DEPS="$DEPS liblua5.1-dev" ;;
-			ubuntu-precise) REAL_DEPS="$DEPS libluajit-5.1-dev" ;;
+			debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev" HYPERSCAN="yes";;
+			debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" ;;
+			ubuntu-precise) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
 			ubuntu-*) 
 				#chroot ${HOME}/$d /bin/sh -c "sed -e 's/main/main universe/' /etc/apt/sources.list > /tmp/.tt ; mv /tmp/.tt /etc/apt/sources.list"
-				REAL_DEPS="$DEPS libluajit-5.1-dev" 
+				REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" 
 				HYPERSCAN="yes"
 				;;
-			*) REAL_DEPS="$DEPS libluajit-5.1-dev" HYPERSCAN="yes" ;;
+			*) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" HYPERSCAN="yes" ;;
 		esac
 
 		do_dir $d
@@ -273,24 +273,24 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 	if [ -z "${NO_RSPAMD}" ] ; then
 	for d in $DISTRIBS_DEB ; do
 		case $d in
-		debian-jessie) REAL_DEPS="$DEPS dh-systemd libluajit-5.1-dev" RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'" ;;
-		debian-wheezy) REAL_DEPS="$DEPS liblua5.1-dev" RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'" ;;
+		debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev" RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'" ;;
+		debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'" ;;
 		ubuntu-precise) 
-			REAL_DEPS="$DEPS libluajit-5.1-dev"
+			REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
 			RULES_SED="-e 's/--with systemd/--parallel/' -e \
 			's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'"
 			;;
 		ubuntu-wily) 
-			REAL_DEPS="$DEPS libluajit-5.1-dev"
+			REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
 			RULES_SED="-e 's/--with systemd/--parallel/' \
 			-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 			;;
 		ubuntu-*) 
-			REAL_DEPS="$DEPS libluajit-5.1-dev"
+			REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
 			RULES_SED="-e 's/--with systemd/--parallel/' \
 			-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 			;;
-		*) REAL_DEPS="$DEPS libluajit-5.1-dev" ;;
+		*) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
 		esac
 		build_rspamd $d
 
@@ -307,13 +307,13 @@ if [ $BUILD_STAGE -eq 1 ] ; then
   if [ -z "${NO_RMILTER}" ] ; then
 		for d in $DISTRIBS_DEB ; do
 			case $d in
-				debian-jessie) REAL_DEPS="$DEPS dh-systemd" RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/'" ;;
-				debian-wheezy) REAL_DEPS="$DEPS" RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'" ;;
+				debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd" RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/'" ;;
+				debian-wheezy) REAL_DEPS="$DEPS_DEB" RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'" ;;
 				ubuntu-*) 
-					REAL_DEPS="$DEPS"
+					REAL_DEPS="$DEPS_DEB"
 					RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'"
 					;;
-				*) REAL_DEPS="$DEPS" ;;
+				*) REAL_DEPS="$DEPS_DEB" ;;
 			esac
 
 			build_rmilter $d
