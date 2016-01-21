@@ -357,16 +357,16 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
 			_repo_descr="Apt repository for rspamd nightly builds"
 		fi
 		if [ -z "${NO_I386}" ] ; then
-			ARCHS="source amd64"
-		else
 			ARCHS="source amd64 i386"
+		else
+			ARCHS="source amd64"
 		fi
 		_repodir=${HOME}/repos/
 		cat >> $_repodir/conf/distributions <<EOD
 Origin: Rspamd
 Label: Rspamd
 Codename: ${_distname}
-Architectures:  ${ARCHS}
+Architectures: ${ARCHS}
 Components: main
 Description: ${_repo_descr}
 SignWith: ${KEY}

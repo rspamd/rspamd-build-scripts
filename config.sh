@@ -13,8 +13,8 @@ export DISTRIBS_DEB="ubuntu-precise \
   debian-wheezy"
 export DISTRIBS_RPM="centos-6 centos-7 fedora-22"
 
-export RSPAMD_VER_UNSTABLE="1.1.1"
-export RSPAMD_VER_STABLE="1.1.0"
+export RSPAMD_VER_UNSTABLE="1.1.2"
+export RSPAMD_VER_STABLE="1.1.1"
 export RMILTER_VER_UNSTABLE="1.7.1"
 export RMILTER_VER_STABLE="1.7.1"
 # RPM stupidity
