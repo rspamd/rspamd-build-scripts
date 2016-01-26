@@ -417,8 +417,10 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
 		exit 1
 	fi
 	if [ -n "${STABLE}" ] ; then
-		scp -r -i ${SSH_KEY_DEB_STABLE}  ${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_STABLE}
+		rsync -P -e "ssh -i ${SSH_KEY_DEB_STABLE}" -rup --delete --delete-before \
+			${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_STABLE}
 	else
-		scp -r -i ${SSH_KEY_DEB_UNSTABLE}  ${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_UNSTABLE}
+		rsync -P -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" -rup --delete --delete-before \
+			${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_UNSTABLE}
 	fi
 fi
