@@ -113,7 +113,7 @@ get_rspamd() {
 	( mkdir ${HOME}/rmilter.build ; cd ${HOME}/rmilter.build ; cmake ${HOME}/rmilter ; make dist )
 }
 
-do_dir() {
+dep_deb() {
 	d=$1
 	#rm -fr ${HOME}/$d/opt/hyperscan
 	rm -f ${HOME}/$d/*.deb
@@ -136,7 +136,13 @@ do_dir() {
 				fi
 				( cd ${HOME}/$d ; tar xzf ${HOME}/boost.tar.gz )
 				mkdir ${HOME}/$d/hyperscan.build
-				chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; cmake ../hyperscan -DCMAKE_INSTALL_PREFIX=/opt/hyperscan -DBOOST_ROOT=/boost_1_59_0 -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_C_FLAGS=-march=core2 -DCMAKE_CXX_FLAGS=-march=core2 && make -j2 && make install"
+				chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; cmake \
+						../hyperscan -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
+						-DBOOST_ROOT=/boost_1_59_0 \
+						-DCMAKE_BUILD_TYPE=MinSizeRel \
+						-DCMAKE_C_FLAGS=-march=core2 \
+						-DCMAKE_CXX_FLAGS=-march=core2 && \
+						make -j2 && make install"
 				if [ $? -ne 0 ] ; then
 					exit 1
 				fi
@@ -148,6 +154,68 @@ do_dir() {
 	fi
 	cp ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/
 	cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d/
+}
+
+dep_rpm() {
+	d=$1
+	#rm -fr ${HOME}/$d/opt/hyperscan
+	rm -f ${HOME}/$d/*.deb
+	rm -f ${HOME}/$d/*.debian.tar.gz
+	rm -f ${HOME}/$d/*.changes
+	rm -f ${HOME}/$d/*.dsc
+	rm -f ${HOME}/$d/*.build
+
+	chroot ${HOME}/$d ${YUM} update
+	chroot ${HOME}/$d ${YUM} install ${REAL_DEPS}
+	if [ $? -ne 0 ] ; then
+		exit 1
+	fi
+
+	if [ -n "${HYPERSCAN}" -a -z "${NO_HYPERSCAN}" ] ; then
+		echo $d | grep 'i386' > /dev/null
+		if [ $? -ne 0 ] ; then
+			#rm -fr ${HOME}/$d/opt/hyperscan
+			if [ ! -d ${HOME}/$d/opt/hyperscan ] ; then
+				rm -fr ${HOME}/$d/hyperscan ${HOME}/$d/hyperscan.build
+				chroot ${HOME}/$d "/usr/bin/git" clone https://github.com/01org/hyperscan.git
+				if [ $? -ne 0 ] ; then
+					exit 1
+				fi
+				( cd ${HOME}/$d ; tar xzf ${HOME}/boost.tar.gz )
+				mkdir ${HOME}/$d/hyperscan.build
+				chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; cmake \
+						../hyperscan -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
+						-DBOOST_ROOT=/boost_1_59_0 \
+						-DCMAKE_BUILD_TYPE=MinSizeRel \
+						-DCMAKE_C_FLAGS=-march=core2 \
+						-DCMAKE_CXX_FLAGS=-march=core2 && \
+						make -j2 && make install"
+				if [ $? -ne 0 ] ; then
+					exit 1
+				fi
+			else
+				# cleanup build
+				rm -fr ${HOME}/$d/hyperscan ${HOME}/$d/hyperscan.build ${HOME}/$d/boost_1_59_0 || true
+			fi
+		fi
+	fi
+
+	cp ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/
+	cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d/
+
+	chroot ${HOME}/$d rm -fr ${BUILD_DIR}
+	chroot ${HOME}/$d mkdir ${BUILD_DIR} \
+		${BUILD_DIR}/RPMS \
+		${BUILD_DIR}/RPMS/i386 \
+		${BUILD_DIR}/RPMS/x86_64 \
+		${BUILD_DIR}/SOURCES \
+		${BUILD_DIR}/SPECS \
+		${BUILD_DIR}/SRPMS
+	cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}/SPECS
+	cp ${HOME}/rpm/SPECS/rmilter.spec ${HOME}/$d/${BUILD_DIR}/SPECS
+	cp ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/${BUILD_DIR}/SOURCES
+	cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d/${BUILD_DIR}/SOURCES
+	cp ${HOME}/rpm/SOURCES/* ${HOME}/$d/${BUILD_DIR}/SOURCES
 }
 
 if [ $DEPS_STAGE -eq 1 ] ; then
@@ -166,19 +234,65 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 				debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" ;;
 				ubuntu-precise) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
 				ubuntu-*)
-					#chroot ${HOME}/$d /bin/sh -c "sed -e 's/main/main universe/' /etc/apt/sources.list > /tmp/.tt ; mv /tmp/.tt /etc/apt/sources.list"
 					REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
 					HYPERSCAN="yes"
 					;;
 				*) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" HYPERSCAN="yes" ;;
 			esac
 
-			do_dir $d
+			dep_deb $d
 
 ### i386 ###
 			if [ -z "${NO_I386}" ] ; then
 				d="$d-i386"
-				do_dir $d
+				dep_deb $d
+			fi
+		done
+	fi
+
+	if [ $RPM -ne 0 ] ; then
+		for d in $DISTRIBS_RPM ; do
+			HYPERSCAN=""
+
+			case $d in
+				opensuse-*)
+					REAL_DEPS="$DEPS_RPM lua-devel sqlite-devel libopendkim-devel ragel gcc-c++"
+					YUM="zypper -n"
+					HYPERSCAN="yes"
+					;;
+				fedora-22*)
+					REAL_DEPS="$DEPS_RPM luajit-devel sqlite-devel libopendkim-devel ragel gcc-c++"
+					YUM="dnf --nogpgcheck -y"
+					HYPERSCAN="yes"
+					;;
+				fedora-23*)
+					REAL_DEPS="$DEPS_RPM luajit-devel sqlite-devel libopendkim-devel ragel gcc-c++"
+					YUM="dnf --nogpgcheck -y"
+					HYPERSCAN="yes"
+					;;
+				fedora-21*)
+					REAL_DEPS="$DEPS_RPM luajit-devel sqlite-devel libopendkim-devel"
+					YUM="yum -y"
+					;;
+				centos-6)
+					REAL_DEPS="$DEPS_RPM lua-devel sqlite-devel libopendkim-devel"
+					YUM="yum -y"
+					;;
+				centos-7)
+					REAL_DEPS="$DEPS_RPM luajit-devel sqlite-devel libopendkim-devel"
+					YUM="yum -y"
+					;;
+				*)
+					YUM="yum -y"
+					REAL_DEPS="$DEPS_RPM sqlite-devel luajit-devel" ;;
+			esac
+
+			dep_rpm $d
+
+### i386 ###
+			if [ -z "${NO_I386}" ] ; then
+				d="$d-i386"
+				#dep_rpm $d
 			fi
 		done
 	fi

@@ -1,10 +1,10 @@
 #!/bin/sh
 
 
-DEPS_DEB="fakeroot make ca-certificates less git vim devscripts debhelper \
+export DEPS_DEB="fakeroot make ca-certificates less git vim devscripts debhelper \
 	dpkg-dev cmake libevent-dev libglib2.0-dev libgmime-2.6-dev libpcre3-dev \
 	libssl-dev libcurl4-openssl-dev libsqlite3-dev perl libopendkim-dev \
-	libmilter-dev libspf2-dev bison flex libmagic-dev git ragel libfann-dev"
+	libmilter-dev bison flex libmagic-dev git ragel libfann-dev"
 export DISTRIBS_DEB="ubuntu-precise \
   ubuntu-trusty \
   ubuntu-vivid \
@@ -12,6 +12,9 @@ export DISTRIBS_DEB="ubuntu-precise \
   debian-jessie \
   debian-wheezy"
 export DISTRIBS_RPM="centos-6 centos-7 fedora-22"
+export DEPS_RPM="glib2-devel libevent-devel openssl-devel pcre-devel perl \
+	hiredis-devel cmake rpm-build gmime-devel gcc make sendmail-devel bison \
+	flex file-devel fann-devel git rsync"
 
 export RSPAMD_VER_UNSTABLE="1.1.2"
 export RSPAMD_VER_STABLE="1.1.1"
