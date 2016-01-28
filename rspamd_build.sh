@@ -2,7 +2,7 @@
 
 export DEBIAN_FRONTEND="noninteractive"
 export LANG="C"
-DEBIAN=0
+DEBIAN=1
 RPM=0
 DEPS_STAGE=0
 BUILD_STAGE=0
@@ -43,8 +43,14 @@ while [ "$1" != "" ]; do
 		--deb)
 			DEBIAN=1
 			;;
+		--no-deb)
+			DEBIAN=0
+			;;
 		--rpm)
 			RPM=1
+			;;
+		--no-rpm)
+			RPM=0
 			;;
 		--stable)
 			export STABLE=1
@@ -103,8 +109,8 @@ get_rspamd() {
 		( cd ${HOME}/rmilter && git checkout ${RMILTER_VER} )
 	fi
 
-	( mkdir ${HOME}/rspamd.build ; cd ${HOME}/rspamd.build ; cmake ${HOME}/rspamd ; make dist ) 
-	( mkdir ${HOME}/rmilter.build ; cd ${HOME}/rmilter.build ; cmake ${HOME}/rmilter ; make dist ) 
+	( mkdir ${HOME}/rspamd.build ; cd ${HOME}/rspamd.build ; cmake ${HOME}/rspamd ; make dist )
+	( mkdir ${HOME}/rmilter.build ; cd ${HOME}/rmilter.build ; cmake ${HOME}/rmilter ; make dist )
 }
 
 do_dir() {
@@ -146,6 +152,7 @@ do_dir() {
 
 if [ $DEPS_STAGE -eq 1 ] ; then
 	get_rspamd
+if [ $DEBIAN -ne 0 ] ; then
 	for d in $DISTRIBS_DEB ; do
 		HYPERSCAN=""
 		grep universe ${HOME}/$d/etc/apt/sources.list > /dev/null 2>&1
@@ -158,9 +165,9 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 			debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev" HYPERSCAN="yes";;
 			debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" ;;
 			ubuntu-precise) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
-			ubuntu-*) 
+			ubuntu-*)
 				#chroot ${HOME}/$d /bin/sh -c "sed -e 's/main/main universe/' /etc/apt/sources.list > /tmp/.tt ; mv /tmp/.tt /etc/apt/sources.list"
-				REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" 
+				REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
 				HYPERSCAN="yes"
 				;;
 			*) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" HYPERSCAN="yes" ;;
@@ -176,12 +183,14 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 	done
 fi
 
-build_rspamd() {
+fi
+
+build_rspamd_deb() {
 	d=$1
 
 	echo "******* BUILD RSPAMD ${RSPAMD_VER} FOR $d ********"
 
-	_id=`git -C ${HOME}/rspamd rev-parse --short HEAD` 
+	_id=`git -C ${HOME}/rspamd rev-parse --short HEAD`
 	_distname=`echo $d | sed -r -e 's/ubuntu-|debian-//' -e 's/-i386//'`
 	_deps_line=`echo ${REAL_DEPS} | tr ' ' ','`
 	if [ -n "${STABLE}" ] ; then
@@ -216,11 +225,11 @@ build_rspamd() {
 	fi
 }
 
-build_rmilter() {
+build_rmilter_deb() {
 	d=$1
 	echo "******* BUILD RMILTER ${RMILTER_VER} FOR $d ********"
 
-	_id=`git -C ${HOME}/rmilter rev-parse --short HEAD` 
+	_id=`git -C ${HOME}/rmilter rev-parse --short HEAD`
 	_distname=`echo $d | sed -r -e 's/ubuntu-|debian-//' -e 's/-i386//'`
 	_deps_line=`echo ${REAL_DEPS} | tr ' ' ','`
 	chroot ${HOME}/$d sh -c "rm -fr rmilter-${RMILTER_VER} ; tar xvf rmilter-${RMILTER_VER}.tar.xz"
@@ -271,59 +280,65 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 	fi
 
 	if [ -z "${NO_RSPAMD}" ] ; then
+	if [ $DEBIAN -ne 0 ] ; then
+
 	for d in $DISTRIBS_DEB ; do
 		case $d in
 		debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev" RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'" ;;
 		debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'" ;;
-		ubuntu-precise) 
+		ubuntu-precise)
 			REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
 			RULES_SED="-e 's/--with systemd/--parallel/' -e \
 			's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'"
 			;;
-		ubuntu-wily) 
+		ubuntu-wily)
 			REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
 			RULES_SED="-e 's/--with systemd/--parallel/' \
 			-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 			;;
-		ubuntu-*) 
+		ubuntu-*)
 			REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
 			RULES_SED="-e 's/--with systemd/--parallel/' \
 			-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 			;;
 		*) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
 		esac
-		build_rspamd $d
+		build_rspamd_deb $d
 
 ### i386 ###
 	  if [ -z "${NO_I386}" ] ; then
 		d="${d}-i386"
-		build_rspamd $d
+		build_rspamd_deb $d
 	  fi
 	done
-  fi
 
-  RULES_SED=""
+	fi # DEBIAN == 0
+	fi # NO_RSPAMD != 0
 
-  if [ -z "${NO_RMILTER}" ] ; then
+	RULES_SED=""
+
+	if [ -z "${NO_RMILTER}" ] ; then
+	if [ $DEBIAN -ne 0 ] ; then
 		for d in $DISTRIBS_DEB ; do
 			case $d in
 				debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd" RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/'" ;;
 				debian-wheezy) REAL_DEPS="$DEPS_DEB" RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'" ;;
-				ubuntu-*) 
+				ubuntu-*)
 					REAL_DEPS="$DEPS_DEB"
 					RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'"
 					;;
 				*) REAL_DEPS="$DEPS_DEB" ;;
 			esac
 
-			build_rmilter $d
+			build_rmilter_deb $d
 ### i386 ###
 			if [ -z "${NO_I386}" ] ; then
 				d="${d}-i386"
-				build_rmilter $d
+				build_rmilter_deb $d
 			fi
 		done
-	fi
+	fi # DEBIAN == 0
+	fi # NO_RSPAMD != 0
 
 # Increase version
 	if [ -z "${STABLE}" -a -z "${NO_INC}" ] ; then
@@ -338,9 +353,11 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
 	else
 		_version=`cat ${HOME}/version || echo 0`
 	fi
-	
+
 	_id=`git -C ${HOME}/rspamd rev-parse --short HEAD`
 	_rmilter_id=`git -C ${HOME}/rmilter rev-parse --short HEAD`
+
+	if [ $DEBIAN -ne 0 ] ; then
 	rm -fr ${HOME}/repos/*
 	gpg --armor --output ${HOME}/repos/gpg.key --export $KEY
 	mkdir ${HOME}/repos/conf || true
@@ -380,7 +397,7 @@ EOD
 		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd-dbg_${_pkg_ver}_amd64.deb
 		reprepro -b $_repodir -v --keepunreferencedfiles includedsc $_distname $d/rspamd_${_pkg_ver}.dsc
 	fi
-	
+
 	if [ -z "${NO_RMILTER}" ] ; then
 			dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.deb
 			dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter-dbg_${_rmilter_pkg_ver}*.deb
@@ -409,6 +426,7 @@ EOD
 	gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
 		mv $_repodir/dists/$_distname/Release.sig $_repodir/dists/$_distname/Release.gpg
 	done
+	fi # DEBIAN == 0
 fi
 
 if [ ${UPLOAD_STAGE} -eq 1 ] ; then
@@ -416,11 +434,14 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
 		echo "No UPLOAD_HOST specified, exiting"
 		exit 1
 	fi
+
+	if [ $DEBIAN -ne 0 ] ; then
 	if [ -n "${STABLE}" ] ; then
-		rsync -P -e "ssh -i ${SSH_KEY_DEB_STABLE}" -rup --delete --delete-before \
+		rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" -rup --delete --delete-before \
 			${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_STABLE}
 	else
-		rsync -P -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" -rup --delete --delete-before \
+		rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" -rup --delete --delete-before \
 			${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_UNSTABLE}
+	fi
 	fi
 fi
