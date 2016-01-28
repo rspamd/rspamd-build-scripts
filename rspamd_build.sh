@@ -602,6 +602,47 @@ gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
 	mv $_repodir/dists/$_distname/Release.sig $_repodir/dists/$_distname/Release.gpg
 	done
 fi # DEBIAN == 0
+
+if [ $RPM -ne 0 ] ; then
+	rm -f ${HOME}/rpm/gpg.key || true
+	ARCH="x86_64"
+	gpg --armor --output ${HOME}/rpm/gpg.key --export $KEY
+	for d in $DISTRIBS_RPM ; do
+		rm -fr ${HOME}/rpm/$d/ || true
+		mkdir -p ${HOME}/rpm/$d/${ARCH} || true
+		cp ${HOME}/${d}/${BUILD_DIR}/RPMS/${ARCH}/*.rpm ${HOME}/rpm/$d/${ARCH}
+		for p in ${HOME}/rpm/$d/${ARCH}/*.rpm ; do
+			./rpm_sign.expect $p
+		done
+		(cd ${HOME}/rpm/$d/${ARCH} && createrepo --compress-type gz . )
+
+		gpg --default-key ${KEY} --detach-sign --armor \
+			${HOME}/rpm/$d/${ARCH}/repodata/repomd.xml
+
+		if [ -n "${STABLE}" ] ; then
+			cat <<EOD > ${HOME}/rpm/$d/rspamd.repo
+[rspamd]
+name=Rspamd stable repository
+baseurl=http://rspamd.com/rpm-stable/$d/${ARCH}/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=http://rspamd.com/rpm/gpg.key
+EOD
+	else
+		cat <<EOD > ${HOME}/rpm/$d/rspamd-experimental.repo
+[rspamd-experimental]
+name=Rspamd experimental repository
+baseurl=http://rspamd.com/rpm/$d/${ARCH}/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=http://rspamd.com/rpm/gpg.key
+EOD
+	fi
+
+done
+fi # RPM == 0
 fi
 
 if [ ${UPLOAD_STAGE} -eq 1 ] ; then
@@ -617,6 +658,16 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
 		else
 			rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" -rup --delete --delete-before \
 				${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_UNSTABLE}
+		fi
+	fi
+
+	if [ $RPM -ne 0 ] ; then
+		if [ -n "${STABLE}" ] ; then
+			rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" -rup --delete --delete-before \
+				${HOME}/rpm/* ${UPLOAD_HOST}:${TARGET_RPM_STABLE}
+		else
+			rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" -rup --delete --delete-before \
+				${HOME}/rpm/* ${UPLOAD_HOST}:${TARGET_RPM_UNSTABLE}
 		fi
 	fi
 fi
