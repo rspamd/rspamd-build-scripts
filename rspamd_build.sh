@@ -377,6 +377,56 @@ build_rmilter_deb() {
 	fi
 }
 
+build_rspamd_rpm() {
+	d=$1
+	echo "******* BUILD RSPAMD ${RSPAMD_VER} FOR $d ********"
+	cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}/SPECS
+	if [ -n "${STABLE}" ] ; then
+		sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
+			-e "s/^Release: [0-9]*$/Release: ${VERSION}/" \
+			< ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
+	else
+		sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
+			-e "s/^Release: [0-9]*$/Release: ${VERSION}.git${_id_rspamd}/" \
+			< ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
+	fi
+
+	mv /tmp/.tt ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec
+
+	chroot ${HOME}/$d rpmbuild \
+		--define='jobs 4' \
+		--define='BuildRoot %{_tmppath}/%{name}' \
+		--define="_topdir ${BUILD_DIR}" \
+		-ba ${BUILD_DIR}/SPECS/rspamd.spec
+	if [ $? -ne 0 ] ; then
+		exit 1
+	fi
+}
+
+build_rmilter_rpm() {
+	d=$1
+	echo "******* BUILD RMILTER ${RMILTER_VER} FOR $d ********"
+	cp ${HOME}/rpm/SPECS/rmilter.spec ${HOME}/$d/${BUILD_DIR}/SPECS
+	if [ -n "${STABLE}" ] ; then
+		sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RMILTER_VER}/" \
+			-e "s/^Release: [0-9]*$/Release: ${VERSION}/" \
+			< ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec > /tmp/.tt
+	else
+		sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RMILTER_VER}/" \
+			-e "s/^Release: [0-9]*$/Release: ${VERSION}.git${_id_rmilter}/" \
+			< ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec > /tmp/.tt
+	fi
+	mv /tmp/.tt ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec
+	chroot ${HOME}/$d rpmbuild \
+		--define='jobs 4' \
+		--define='BuildRoot %{_tmppath}/%{name}' \
+		--define="_topdir ${BUILD_DIR}" \
+		-ba ${BUILD_DIR}/SPECS/rmilter.spec
+	if [ $? -ne 0 ] ; then
+		exit 1
+	fi
+}
+
 
 if [ $BUILD_STAGE -eq 1 ] ; then
 
@@ -427,6 +477,12 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 			done
 
 		fi # DEBIAN == 0
+
+		if [ $RPM -ne 0 ] ; then
+			for d in $DISTRIBS_RPM ; do
+				build_rspamd_rpm $d
+			done
+		fi
 	fi # NO_RSPAMD != 0
 
 	RULES_SED=""
@@ -452,6 +508,11 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 				fi
 			done
 		fi # DEBIAN == 0
+		if [ $RPM -ne 0 ] ; then
+			for d in $DISTRIBS_RPM ; do
+				build_rmilter_rpm $d
+			done
+		fi
 	fi # NO_RSPAMD != 0
 
 # Increase version
