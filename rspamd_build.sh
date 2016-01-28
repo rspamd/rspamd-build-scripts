@@ -152,36 +152,36 @@ do_dir() {
 
 if [ $DEPS_STAGE -eq 1 ] ; then
 	get_rspamd
-if [ $DEBIAN -ne 0 ] ; then
-	for d in $DISTRIBS_DEB ; do
-		HYPERSCAN=""
-		grep universe ${HOME}/$d/etc/apt/sources.list > /dev/null 2>&1
-		if [ $? -ne 0 ] ; then
-			sed -e 's/main/main universe/' ${HOME}/$d/etc/apt/sources.list > /tmp/.tt
-			mv /tmp/.tt ${HOME}/$d/etc/apt/sources.list
-		fi
+	if [ $DEBIAN -ne 0 ] ; then
+		for d in $DISTRIBS_DEB ; do
+			HYPERSCAN=""
+			grep universe ${HOME}/$d/etc/apt/sources.list > /dev/null 2>&1
+			if [ $? -ne 0 ] ; then
+				sed -e 's/main/main universe/' ${HOME}/$d/etc/apt/sources.list > /tmp/.tt
+				mv /tmp/.tt ${HOME}/$d/etc/apt/sources.list
+			fi
 
-		case $d in
-			debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev" HYPERSCAN="yes";;
-			debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" ;;
-			ubuntu-precise) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
-			ubuntu-*)
-				#chroot ${HOME}/$d /bin/sh -c "sed -e 's/main/main universe/' /etc/apt/sources.list > /tmp/.tt ; mv /tmp/.tt /etc/apt/sources.list"
-				REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
-				HYPERSCAN="yes"
-				;;
-			*) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" HYPERSCAN="yes" ;;
-		esac
+			case $d in
+				debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev" HYPERSCAN="yes";;
+				debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" ;;
+				ubuntu-precise) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
+				ubuntu-*)
+					#chroot ${HOME}/$d /bin/sh -c "sed -e 's/main/main universe/' /etc/apt/sources.list > /tmp/.tt ; mv /tmp/.tt /etc/apt/sources.list"
+					REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
+					HYPERSCAN="yes"
+					;;
+				*) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" HYPERSCAN="yes" ;;
+			esac
 
-		do_dir $d
+			do_dir $d
 
 ### i386 ###
-		if [ -z "${NO_I386}" ] ; then
-			d="$d-i386"
-			do_dir $d
-		fi
-	done
-fi
+			if [ -z "${NO_I386}" ] ; then
+				d="$d-i386"
+				do_dir $d
+			fi
+		done
+	fi
 
 fi
 
@@ -280,64 +280,64 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 	fi
 
 	if [ -z "${NO_RSPAMD}" ] ; then
-	if [ $DEBIAN -ne 0 ] ; then
+		if [ $DEBIAN -ne 0 ] ; then
 
-	for d in $DISTRIBS_DEB ; do
-		case $d in
-		debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev" RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'" ;;
-		debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'" ;;
-		ubuntu-precise)
-			REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
-			RULES_SED="-e 's/--with systemd/--parallel/' -e \
+			for d in $DISTRIBS_DEB ; do
+				case $d in
+					debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev" RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'" ;;
+					debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'" ;;
+					ubuntu-precise)
+						REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
+						RULES_SED="-e 's/--with systemd/--parallel/' -e \
 			's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'"
-			;;
-		ubuntu-wily)
-			REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
-			RULES_SED="-e 's/--with systemd/--parallel/' \
+						;;
+					ubuntu-wily)
+						REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
+						RULES_SED="-e 's/--with systemd/--parallel/' \
 			-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
-			;;
-		ubuntu-*)
-			REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
-			RULES_SED="-e 's/--with systemd/--parallel/' \
+						;;
+					ubuntu-*)
+						REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
+						RULES_SED="-e 's/--with systemd/--parallel/' \
 			-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
-			;;
-		*) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
-		esac
-		build_rspamd_deb $d
+						;;
+					*) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
+				esac
+				build_rspamd_deb $d
 
 ### i386 ###
-	  if [ -z "${NO_I386}" ] ; then
-		d="${d}-i386"
-		build_rspamd_deb $d
-	  fi
-	done
+				if [ -z "${NO_I386}" ] ; then
+					d="${d}-i386"
+					build_rspamd_deb $d
+				fi
+			done
 
-	fi # DEBIAN == 0
+		fi # DEBIAN == 0
 	fi # NO_RSPAMD != 0
 
 	RULES_SED=""
 
 	if [ -z "${NO_RMILTER}" ] ; then
-	if [ $DEBIAN -ne 0 ] ; then
-		for d in $DISTRIBS_DEB ; do
-			case $d in
-				debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd" RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/'" ;;
-				debian-wheezy) REAL_DEPS="$DEPS_DEB" RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'" ;;
-				ubuntu-*)
-					REAL_DEPS="$DEPS_DEB"
-					RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'"
-					;;
-				*) REAL_DEPS="$DEPS_DEB" ;;
-			esac
+		if [ $DEBIAN -ne 0 ] ; then
+			for d in $DISTRIBS_DEB ; do
+				case $d in
+					debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd" RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/'" ;;
+					debian-wheezy) REAL_DEPS="$DEPS_DEB" RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'" ;;
+					ubuntu-*)
+						REAL_DEPS="$DEPS_DEB"
+						RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'"
+						;;
+					*) REAL_DEPS="$DEPS_DEB" ;;
+				esac
 
-			build_rmilter_deb $d
-### i386 ###
-			if [ -z "${NO_I386}" ] ; then
-				d="${d}-i386"
 				build_rmilter_deb $d
-			fi
-		done
-	fi # DEBIAN == 0
+### i386 ###
+				if [ -z "${NO_I386}" ] ; then
+					d="${d}-i386"
+					build_rmilter_deb $d
+				fi
+			done
+		fi # DEBIAN == 0
 	fi # NO_RSPAMD != 0
 
 # Increase version
@@ -358,28 +358,28 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
 	_rmilter_id=`git -C ${HOME}/rmilter rev-parse --short HEAD`
 
 	if [ $DEBIAN -ne 0 ] ; then
-	rm -fr ${HOME}/repos/*
-	gpg --armor --output ${HOME}/repos/gpg.key --export $KEY
-	mkdir ${HOME}/repos/conf || true
+		rm -fr ${HOME}/repos/*
+		gpg --armor --output ${HOME}/repos/gpg.key --export $KEY
+		mkdir ${HOME}/repos/conf || true
 
-	for d in $DISTRIBS_DEB ; do
-		_distname=`echo $d | sed -r -e 's/ubuntu-|debian-//'`
-		if [ -n "${STABLE}" ] ; then
-			_pkg_ver="${RSPAMD_VER}-${_version}~${_distname}"
-			_rmilter_pkg_ver="${RMILTER_VER}-${_version}~${_distname}"
-			_repo_descr="Apt repository for rspamd stable builds"
-		else
-			_pkg_ver="${RSPAMD_VER}-0~git${_version}~${_id}~${_distname}"
-			_rmilter_pkg_ver="${RMILTER_VER}-0~git${_version}~${_rmilter_id}~${_distname}"
-			_repo_descr="Apt repository for rspamd nightly builds"
-		fi
-		if [ -z "${NO_I386}" ] ; then
-			ARCHS="source amd64 i386"
-		else
-			ARCHS="source amd64"
-		fi
-		_repodir=${HOME}/repos/
-		cat >> $_repodir/conf/distributions <<EOD
+		for d in $DISTRIBS_DEB ; do
+			_distname=`echo $d | sed -r -e 's/ubuntu-|debian-//'`
+			if [ -n "${STABLE}" ] ; then
+				_pkg_ver="${RSPAMD_VER}-${_version}~${_distname}"
+				_rmilter_pkg_ver="${RMILTER_VER}-${_version}~${_distname}"
+				_repo_descr="Apt repository for rspamd stable builds"
+			else
+				_pkg_ver="${RSPAMD_VER}-0~git${_version}~${_id}~${_distname}"
+				_rmilter_pkg_ver="${RMILTER_VER}-0~git${_version}~${_rmilter_id}~${_distname}"
+				_repo_descr="Apt repository for rspamd nightly builds"
+			fi
+			if [ -z "${NO_I386}" ] ; then
+				ARCHS="source amd64 i386"
+			else
+				ARCHS="source amd64"
+			fi
+			_repodir=${HOME}/repos/
+			cat >> $_repodir/conf/distributions <<EOD
 Origin: Rspamd
 Label: Rspamd
 Codename: ${_distname}
@@ -389,44 +389,44 @@ Description: ${_repo_descr}
 SignWith: ${KEY}
 
 EOD
+if [ -z "${NO_RSPAMD}" ] ; then
+	dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd_${_pkg_ver}*.deb
+	dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd-dbg_${_pkg_ver}*.deb
+	debsign --re-sign -k $KEY ${HOME}/$d/rspamd_${_pkg_ver}*.changes
+	reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd_${_pkg_ver}_amd64.deb
+	reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd-dbg_${_pkg_ver}_amd64.deb
+	reprepro -b $_repodir -v --keepunreferencedfiles includedsc $_distname $d/rspamd_${_pkg_ver}.dsc
+fi
+
+if [ -z "${NO_RMILTER}" ] ; then
+	dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.deb
+	dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter-dbg_${_rmilter_pkg_ver}*.deb
+	debsign --re-sign -k $KEY ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.changes
+	reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter_${_rmilter_pkg_ver}_amd64.deb
+	reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter-dbg_${_rmilter_pkg_ver}_amd64.deb
+	reprepro -b $_repodir -v --keepunreferencedfiles includedsc $_distname $d/rmilter_${_rmilter_pkg_ver}.dsc
+fi
+### i386 ###
+if [ -z "${NO_I386}" ] ; then
+	d="${d}-i386"
 	if [ -z "${NO_RSPAMD}" ] ; then
 		dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd_${_pkg_ver}*.deb
 		dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd-dbg_${_pkg_ver}*.deb
+		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd_${_pkg_ver}_i386.deb
+		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd-dbg_${_pkg_ver}_i386.deb
 		debsign --re-sign -k $KEY ${HOME}/$d/rspamd_${_pkg_ver}*.changes
-		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd_${_pkg_ver}_amd64.deb
-		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd-dbg_${_pkg_ver}_amd64.deb
-		reprepro -b $_repodir -v --keepunreferencedfiles includedsc $_distname $d/rspamd_${_pkg_ver}.dsc
 	fi
+	dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.deb
+	dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter-dbg_${_rmilter_pkg_ver}*.deb
+	debsign --re-sign -k $KEY ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.changes
+	reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter_${_rmilter_pkg_ver}_i386.deb
+	reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter-dbg_${_rmilter_pkg_ver}_i386.deb
+fi
 
-	if [ -z "${NO_RMILTER}" ] ; then
-			dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.deb
-			dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter-dbg_${_rmilter_pkg_ver}*.deb
-			debsign --re-sign -k $KEY ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.changes
-			reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter_${_rmilter_pkg_ver}_amd64.deb
-			reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter-dbg_${_rmilter_pkg_ver}_amd64.deb
-			reprepro -b $_repodir -v --keepunreferencedfiles includedsc $_distname $d/rmilter_${_rmilter_pkg_ver}.dsc
-		fi
-### i386 ###
-		if [ -z "${NO_I386}" ] ; then
-		d="${d}-i386"
-		if [ -z "${NO_RSPAMD}" ] ; then
-			dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd_${_pkg_ver}*.deb
-			dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd-dbg_${_pkg_ver}*.deb
-			reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd_${_pkg_ver}_i386.deb
-			reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd-dbg_${_pkg_ver}_i386.deb
-			debsign --re-sign -k $KEY ${HOME}/$d/rspamd_${_pkg_ver}*.changes
-		fi
-		dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.deb
-		dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter-dbg_${_rmilter_pkg_ver}*.deb
-		debsign --re-sign -k $KEY ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.changes
-		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter_${_rmilter_pkg_ver}_i386.deb
-		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter-dbg_${_rmilter_pkg_ver}_i386.deb
-	fi
-
-	gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
-		mv $_repodir/dists/$_distname/Release.sig $_repodir/dists/$_distname/Release.gpg
+gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
+	mv $_repodir/dists/$_distname/Release.sig $_repodir/dists/$_distname/Release.gpg
 	done
-	fi # DEBIAN == 0
+fi # DEBIAN == 0
 fi
 
 if [ ${UPLOAD_STAGE} -eq 1 ] ; then
@@ -436,12 +436,12 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
 	fi
 
 	if [ $DEBIAN -ne 0 ] ; then
-	if [ -n "${STABLE}" ] ; then
-		rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" -rup --delete --delete-before \
-			${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_STABLE}
-	else
-		rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" -rup --delete --delete-before \
-			${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_UNSTABLE}
-	fi
+		if [ -n "${STABLE}" ] ; then
+			rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" -rup --delete --delete-before \
+				${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_STABLE}
+		else
+			rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" -rup --delete --delete-before \
+				${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_UNSTABLE}
+		fi
 	fi
 fi
