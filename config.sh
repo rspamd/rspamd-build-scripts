@@ -16,8 +16,8 @@ export DEPS_RPM="glib2-devel libevent-devel openssl-devel pcre-devel perl \
 	hiredis-devel cmake rpm-build gmime-devel gcc make sendmail-devel bison \
 	flex file-devel fann-devel git rsync perl-Digest-MD5"
 
-export RSPAMD_VER_UNSTABLE="1.1.2"
-export RSPAMD_VER_STABLE="1.1.1"
+export RSPAMD_VER_UNSTABLE="1.1.3"
+export RSPAMD_VER_STABLE="1.1.2"
 export RMILTER_VER_UNSTABLE="1.7.2"
 export RMILTER_VER_STABLE="1.7.1"
 # RPM stupidity
