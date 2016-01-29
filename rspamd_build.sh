@@ -383,11 +383,11 @@ build_rspamd_rpm() {
 	cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}/SPECS
 	if [ -n "${STABLE}" ] ; then
 		sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
-			-e "s/^Release: [0-9]*$/Release: ${VERSION}/" \
+			-e "s/^Release: [0-9]*$/Release: ${_version}/" \
 			< ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
 	else
 		sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
-			-e "s/^Release: [0-9]*$/Release: ${VERSION}.git${_id_rspamd}/" \
+			-e "s/^Release: [0-9]*$/Release: ${_version}.git${_id_rspamd}/" \
 			< ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
 	fi
 
@@ -409,11 +409,11 @@ build_rmilter_rpm() {
 	cp ${HOME}/rpm/SPECS/rmilter.spec ${HOME}/$d/${BUILD_DIR}/SPECS
 	if [ -n "${STABLE}" ] ; then
 		sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RMILTER_VER}/" \
-			-e "s/^Release: [0-9]*$/Release: ${VERSION}/" \
+			-e "s/^Release: [0-9]*$/Release: ${_version}/" \
 			< ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec > /tmp/.tt
 	else
 		sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RMILTER_VER}/" \
-			-e "s/^Release: [0-9]*$/Release: ${VERSION}.git${_id_rmilter}/" \
+			-e "s/^Release: [0-9]*$/Release: ${_version}.git${_id_rmilter}/" \
 			< ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec > /tmp/.tt
 	fi
 	mv /tmp/.tt ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec
