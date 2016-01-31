@@ -448,22 +448,33 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 
 			for d in $DISTRIBS_DEB ; do
 				case $d in
-					debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev" RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'" ;;
-					debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'" ;;
+					debian-jessie)
+						REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev"
+						RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/' \
+								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'" ;;
+					debian-sid)
+						REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev"
+						RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/' \
+								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'" ;;
+						;;
+					debian-wheezy)
+						REAL_DEPS="$DEPS_DEB liblua5.1-dev"
+						RULES_SED="-e 's/--with systemd/--parallel/' \
+								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'" ;;
 					ubuntu-precise)
 						REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
 						RULES_SED="-e 's/--with systemd/--parallel/' -e \
-			's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'"
+								's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'"
 						;;
 					ubuntu-wily)
 						REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
 						RULES_SED="-e 's/--with systemd/--parallel/' \
-			-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 						;;
 					ubuntu-*)
 						REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
 						RULES_SED="-e 's/--with systemd/--parallel/' \
-			-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 						;;
 					*) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
 				esac

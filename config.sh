@@ -10,8 +10,9 @@ export DISTRIBS_DEB="ubuntu-precise \
   ubuntu-vivid \
   ubuntu-wily \
   debian-jessie \
-  debian-wheezy"
-export DISTRIBS_RPM="centos-6 centos-7 fedora-22"
+  debian-wheezy \
+  debian-sid"
+export DISTRIBS_RPM="centos-6 centos-7 fedora-22 fedora-23"
 export DEPS_RPM="glib2-devel libevent-devel openssl-devel pcre-devel perl \
 	hiredis-devel cmake rpm-build gmime-devel gcc make sendmail-devel bison \
 	flex file-devel fann-devel git rsync perl-Digest-MD5"
