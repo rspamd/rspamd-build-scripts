@@ -451,11 +451,12 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 					debian-jessie)
 						REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev"
 						RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/' \
-								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'" ;;
+								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+						;;
 					debian-sid)
 						REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev"
 						RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/' \
-								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'" ;;
+								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 						;;
 					debian-wheezy)
 						REAL_DEPS="$DEPS_DEB liblua5.1-dev"
