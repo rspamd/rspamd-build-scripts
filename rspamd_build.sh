@@ -231,6 +231,7 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 
 			case $d in
 				debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev" HYPERSCAN="yes";;
+				debian-sid) REAL_DEPS="$DEPS_DEB dh-systemd build-essential libluajit-5.1-dev" HYPERSCAN="yes";;
 				debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" ;;
 				ubuntu-precise) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
 				ubuntu-*)
@@ -379,6 +380,7 @@ build_rmilter_deb() {
 
 build_rspamd_rpm() {
 	d=$1
+	_id=`git -C ${HOME}/rspamd rev-parse --short HEAD`
 	echo "******* BUILD RSPAMD ${RSPAMD_VER} FOR $d ********"
 	cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}/SPECS
 	if [ -n "${STABLE}" ] ; then
@@ -387,7 +389,7 @@ build_rspamd_rpm() {
 			< ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
 	else
 		sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
-			-e "s/^Release: [0-9]*$/Release: ${_version}.git${_id_rspamd}/" \
+			-e "s/^Release: [0-9]*$/Release: ${_version}.git${_id}/" \
 			< ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
 	fi
 
@@ -406,6 +408,7 @@ build_rspamd_rpm() {
 build_rmilter_rpm() {
 	d=$1
 	echo "******* BUILD RMILTER ${RMILTER_VER} FOR $d ********"
+	_id=`git -C ${HOME}/rmilter rev-parse --short HEAD`
 	cp ${HOME}/rpm/SPECS/rmilter.spec ${HOME}/$d/${BUILD_DIR}/SPECS
 	if [ -n "${STABLE}" ] ; then
 		sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RMILTER_VER}/" \
@@ -413,7 +416,7 @@ build_rmilter_rpm() {
 			< ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec > /tmp/.tt
 	else
 		sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RMILTER_VER}/" \
-			-e "s/^Release: [0-9]*$/Release: ${_version}.git${_id_rmilter}/" \
+			-e "s/^Release: [0-9]*$/Release: ${_version}.git${_id}/" \
 			< ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec > /tmp/.tt
 	fi
 	mv /tmp/.tt ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec
