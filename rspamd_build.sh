@@ -354,6 +354,11 @@ build_rmilter_deb() {
 	  < rmilter-${RMILTER_VER}/debian/control > /tmp/.tt ; \
 	  mv /tmp/.tt rmilter-${RMILTER_VER}/debian/control"
 	if [ -n "${STABLE}" ] ; then
+		RULES_SED="${RULES_SED} -e \"s/-DDEBIAN_BUILD=1/-DDEBIAN_BUILD=1/\""
+	else
+		RULES_SED="${RULES_SED} -e \"s/-DDEBIAN_BUILD=1/-DDEBIAN_BUILD=1 -DGIT_ID=${_id}/\""
+	fi
+	if [ -n "${STABLE}" ] ; then
 		chroot ${HOME}/$d sh -c "sed -e \"s/unstable/${_distname}/\" \
 	  -e \"s/Mikhail Gusarov <dottedmag@debian.org>/Vsevolod Stakhov <vsevolod@highsecure.ru>/\" \
 	  -e \"s/1.6.[0-9]*/${RMILTER_VER}-${_version}~${_distname}/\" \
@@ -453,12 +458,12 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 				case $d in
 					debian-jessie)
 						REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev"
-						RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/' \
+						RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
 								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 						;;
 					debian-sid)
 						REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev"
-						RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/' \
+						RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
 								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 						;;
 					debian-wheezy)
@@ -506,11 +511,27 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 		if [ $DEBIAN -ne 0 ] ; then
 			for d in $DISTRIBS_DEB ; do
 				case $d in
-					debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd" RULES_SED="-e 's/--with-systemd/--with-systemd --parallel/'" ;;
-					debian-wheezy) REAL_DEPS="$DEPS_DEB" RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'" ;;
+					debian-jessie)
+						REAL_DEPS="$DEPS_DEB dh-systemd"
+						RULES_SED="-e 's/--with systemd/--with systemd --parallel/'"
+						;;
+					debian-sid)
+						REAL_DEPS="$DEPS_DEB dh-systemd"
+						RULES_SED="-e 's/--with systemd/--with systemd --parallel/'"
+						;;
+					ubuntu-wily)
+						REAL_DEPS="$DEPS_DEB"
+						RULES_SED="-e 's/--with systemd/--parallel/'"
+						;;
+					debian-wheezy)
+						REAL_DEPS="$DEPS_DEB"
+						RULES_SED="-e 's/--with systemd/--parallel/' \
+						-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'"
+						;;
 					ubuntu-*)
 						REAL_DEPS="$DEPS_DEB"
-						RULES_SED="-e 's/--with systemd/--parallel/' -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'"
+						RULES_SED="-e 's/--with systemd/--parallel/' \
+							-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'"
 						;;
 					*) REAL_DEPS="$DEPS_DEB" ;;
 				esac
