@@ -29,6 +29,7 @@ usage()
 	echo "\t--no-rmilter: do not build rmilter packages"
 	echo "\t--no-rspamd: do not build rspamd packages"
 	echo "\t--no-hyperscan: do not use hyperscan"
+	echo "\t--no-luajit: do not use luajit"
 	echo ""
 }
 
@@ -84,6 +85,12 @@ while [ "$1" != "" ]; do
 			;;
 		--no-rspamd)
 			NO_RSPAMD=1
+			;;
+		--no-hyperscan)
+			NO_HYPERSCAN=1
+			;;
+		--no-luajit)
+			NO_LUAJIT=1
 			;;
 		--upload-host)
 			UPLOAD_HOST="${VALUE}"
@@ -220,6 +227,12 @@ dep_rpm() {
 
 if [ $DEPS_STAGE -eq 1 ] ; then
 	get_rspamd
+	if [ -z "${NO_LUAJIT}" ] ; then
+		LUAJIT_DEP="libluajit-5.1-dev"
+	else
+		LUAJIT_DEP="liblua5.1-dev"
+	fi
+
 	if [ $DEBIAN -ne 0 ] ; then
 		for d in $DISTRIBS_DEB ; do
 			HYPERSCAN=""
@@ -230,15 +243,15 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 			fi
 
 			case $d in
-				debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev" HYPERSCAN="yes";;
-				debian-sid) REAL_DEPS="$DEPS_DEB dh-systemd build-essential libluajit-5.1-dev" HYPERSCAN="yes";;
+				debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}" HYPERSCAN="yes";;
+				debian-sid) REAL_DEPS="$DEPS_DEB dh-systemd build-essential ${LUAJIT_DEP}" HYPERSCAN="yes";;
 				debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" ;;
-				ubuntu-precise) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
+				ubuntu-precise) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}" ;;
 				ubuntu-*)
-					REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
+					REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
 					HYPERSCAN="yes"
 					;;
-				*) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" HYPERSCAN="yes" ;;
+				*) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}" HYPERSCAN="yes" ;;
 			esac
 
 			dep_deb $d
@@ -252,6 +265,12 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 	fi
 
 	if [ $RPM -ne 0 ] ; then
+		if [ -z "${NO_LUAJIT}" ] ; then
+			LUAJIT_DEP="luajit-devel"
+		else
+			LUAJIT_DEP="lua-devel"
+		fi
+
 		for d in $DISTRIBS_RPM ; do
 			HYPERSCAN=""
 
@@ -262,17 +281,17 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 					HYPERSCAN="yes"
 					;;
 				fedora-22*)
-					REAL_DEPS="$DEPS_RPM luajit-devel sqlite-devel libopendkim-devel ragel gcc-c++"
+					REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel ragel gcc-c++"
 					YUM="dnf --nogpgcheck -y"
 					HYPERSCAN="yes"
 					;;
 				fedora-23*)
-					REAL_DEPS="$DEPS_RPM luajit-devel sqlite-devel libopendkim-devel ragel gcc-c++"
+					REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel ragel gcc-c++"
 					YUM="dnf --nogpgcheck -y"
 					HYPERSCAN="yes"
 					;;
 				fedora-21*)
-					REAL_DEPS="$DEPS_RPM luajit-devel sqlite-devel libopendkim-devel"
+					REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel"
 					YUM="yum -y"
 					;;
 				centos-6)
@@ -280,12 +299,12 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 					YUM="yum -y"
 					;;
 				centos-7)
-					REAL_DEPS="$DEPS_RPM luajit-devel sqlite-devel libopendkim-devel"
+					REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel"
 					YUM="yum -y"
 					;;
 				*)
 					YUM="yum -y"
-					REAL_DEPS="$DEPS_RPM sqlite-devel luajit-devel" ;;
+					REAL_DEPS="$DEPS_RPM sqlite-devel ${LUAJIT_DEP}" ;;
 			esac
 
 			dep_rpm $d
@@ -312,6 +331,9 @@ build_rspamd_deb() {
 		RULES_SED="${RULES_SED} -e \"s/-DDEBIAN_BUILD=1/-DDEBIAN_BUILD=1/\""
 	else
 		RULES_SED="${RULES_SED} -e \"s/-DDEBIAN_BUILD=1/-DDEBIAN_BUILD=1 -DGIT_ID=${_id}/\""
+	fi
+	if [ -n "${NO_LUAJIT}" ] ; then
+		RULES_SED="${RULES_SED} -e \"s/-DENABLE_LUAJIT=ON/-DENABLE_LUAJIT=OFF/\""
 	fi
 	chroot ${HOME}/$d sh -c "rm -fr rspamd-${RSPAMD_VER} ; tar xvf rspamd-${RSPAMD_VER}.tar.xz"
 	chroot ${HOME}/$d sh -c "cp rspamd-${RSPAMD_VER}.tar.xz rspamd_${RSPAMD_VER}.orig.tar.xz"
@@ -454,15 +476,21 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 	if [ -z "${NO_RSPAMD}" ] ; then
 		if [ $DEBIAN -ne 0 ] ; then
 
+			if [ -z "${NO_LUAJIT}" ] ; then
+				LUAJIT_DEP="libluajit-5.1-dev"
+			else
+				LUAJIT_DEP="liblua5.1-dev"
+			fi
+
 			for d in $DISTRIBS_DEB ; do
 				case $d in
 					debian-jessie)
-						REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev"
+						REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
 						RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
 								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 						;;
 					debian-sid)
-						REAL_DEPS="$DEPS_DEB dh-systemd libluajit-5.1-dev"
+						REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
 						RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
 								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 						;;
@@ -471,21 +499,21 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 						RULES_SED="-e 's/--with systemd/--parallel/' \
 								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'" ;;
 					ubuntu-precise)
-						REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
+						REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
 						RULES_SED="-e 's/--with systemd/--parallel/' -e \
 								's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'"
 						;;
 					ubuntu-wily)
-						REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
+						REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
 						RULES_SED="-e 's/--with systemd/--parallel/' \
 								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 						;;
 					ubuntu-*)
-						REAL_DEPS="$DEPS_DEB libluajit-5.1-dev"
+						REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
 						RULES_SED="-e 's/--with systemd/--parallel/' \
 								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 						;;
-					*) REAL_DEPS="$DEPS_DEB libluajit-5.1-dev" ;;
+					*) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}" ;;
 				esac
 				build_rspamd_deb $d
 
