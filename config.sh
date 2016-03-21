@@ -7,8 +7,8 @@ export DEPS_DEB="fakeroot make ca-certificates less git vim devscripts debhelper
 	libmilter-dev bison flex libmagic-dev git ragel libfann-dev"
 export DISTRIBS_DEB="ubuntu-precise \
   ubuntu-trusty \
-  ubuntu-vivid \
   ubuntu-wily \
+  ubuntu-xenial \
   debian-jessie \
   debian-wheezy \
   debian-sid"

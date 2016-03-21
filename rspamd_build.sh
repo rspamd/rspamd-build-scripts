@@ -247,6 +247,7 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 				debian-sid) REAL_DEPS="$DEPS_DEB dh-systemd build-essential ${LUAJIT_DEP}" HYPERSCAN="yes";;
 				debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" ;;
 				ubuntu-precise) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}" ;;
+				ubuntu-xenial) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}" HYPERSCAN="yes";;
 				ubuntu-*)
 					REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
 					HYPERSCAN="yes"
@@ -508,6 +509,11 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 						RULES_SED="-e 's/--with systemd/--parallel/' \
 								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
 						;;
+					ubuntu-xenial)
+						REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
+						RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
+								-e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+						;;
 					ubuntu-*)
 						REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
 						RULES_SED="-e 's/--with systemd/--parallel/' \
@@ -550,6 +556,10 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 					ubuntu-wily)
 						REAL_DEPS="$DEPS_DEB"
 						RULES_SED="-e 's/--with systemd/--parallel/'"
+						;;
+					ubuntu-xenial)
+						REAL_DEPS="$DEPS_DEB dh-systemd"
+						RULES_SED="-e 's/--with systemd/--with systemd --parallel/'"
 						;;
 					debian-wheezy)
 						REAL_DEPS="$DEPS_DEB"
