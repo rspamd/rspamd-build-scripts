@@ -107,18 +107,66 @@ done
 . ./config.sh
 
 get_rspamd() {
-	rm -fr ${HOME}/rspamd ${HOME}/rspamd.build ${HOME}/rmilter ${HOME}/rmilter.build
-	/usr/bin/git clone --recursive https://github.com/vstakhov/rspamd ${HOME}/rspamd
-	/usr/bin/git clone --recursive https://github.com/vstakhov/rmilter ${HOME}/rmilter
+	rm -fr ${HOME}/rspamd ${HOME}/rspamd.build
+	git clone --recursive https://github.com/vstakhov/rspamd ${HOME}/rspamd
 
 	if [ -n "${STABLE}" ] ; then
 		( cd ${HOME}/rspamd && git checkout ${RSPAMD_VER} )
-		( cd ${HOME}/rmilter && git checkout ${RMILTER_VER} )
+
+		if [ $? -ne 0 ] ; then
+			exit 1
+		fi
 	fi
 
 	( mkdir ${HOME}/rspamd.build ; cd ${HOME}/rspamd.build ; cmake ${HOME}/rspamd ; make dist )
-	( mkdir ${HOME}/rmilter.build ; cd ${HOME}/rmilter.build ; cmake ${HOME}/rmilter ; make dist )
+	if [ $? -ne 0 ] ; then
+		exit 1
+	fi
+
+	if [ $DEBIAN -ne 0 ] ; then
+		for d in $DISTRIBS_DEB ; do
+			cp ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/
+			cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d-i386/
+		done
+	fi
+	if [ $RPM -ne 0 ] ; then
+		for d in $DISTRIBS_RPM ; do
+			cp ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/
+			cp ${HOME}/$d/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/${BUILD_DIR}/SOURCES
+		done
+	fi
 }
+
+get_rmilter() {
+	rm -fr ${HOME}/rmilter ${HOME}/rmilter.build
+	git clone --recursive https://github.com/vstakhov/rmilter ${HOME}/rmilter
+
+	if [ -n "${STABLE}" ] ; then
+		( cd ${HOME}/rmilter && git checkout ${RMILTER_VER} )
+		if [ $? -ne 0 ] ; then
+			exit 1
+		fi
+	fi
+
+	( mkdir ${HOME}/rmilter.build ; cd ${HOME}/rmilter.build ; cmake ${HOME}/rmilter ; make dist )
+	if [ $? -ne 0 ] ; then
+		exit 1
+	fi
+
+	if [ $DEBIAN -ne 0 ] ; then
+		for d in $DISTRIBS_DEB ; do
+			cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d/
+			cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d-i386/
+		done
+	fi
+	if [ $RPM -ne 0 ] ; then
+		for d in $DISTRIBS_RPM ; do
+			cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d/
+			cp ${HOME}/$d/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d/${BUILD_DIR}/SOURCES
+		done
+	fi
+}
+
 
 dep_deb() {
 	d=$1
@@ -159,8 +207,6 @@ dep_deb() {
 			fi
 		fi
 	fi
-	cp ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/
-	cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d/
 }
 
 dep_rpm() {
@@ -207,9 +253,6 @@ dep_rpm() {
 		fi
 	fi
 
-	cp ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/
-	cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d/
-
 	chroot ${HOME}/$d rm -fr ${BUILD_DIR}
 	chroot ${HOME}/$d mkdir ${BUILD_DIR} \
 		${BUILD_DIR}/RPMS \
@@ -220,13 +263,10 @@ dep_rpm() {
 		${BUILD_DIR}/SRPMS
 	cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}/SPECS
 	cp ${HOME}/rpm/SPECS/rmilter.spec ${HOME}/$d/${BUILD_DIR}/SPECS
-	cp ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/${BUILD_DIR}/SOURCES
-	cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d/${BUILD_DIR}/SOURCES
 	cp ${HOME}/rpm/SOURCES/* ${HOME}/$d/${BUILD_DIR}/SOURCES
 }
 
 if [ $DEPS_STAGE -eq 1 ] ; then
-	get_rspamd
 	if [ -z "${NO_LUAJIT}" ] ; then
 		LUAJIT_DEP="libluajit-5.1-dev"
 	else
@@ -318,6 +358,13 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 		done
 	fi
 
+	if [ -z "${NO_RSPAMD}" ] ; then
+		get_rspamd
+	fi
+
+	if [ -z "${NO_RMILTER}" ] ; then
+		get_rmilter
+	fi
 fi
 
 build_rspamd_deb() {
