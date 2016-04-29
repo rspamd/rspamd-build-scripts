@@ -8,6 +8,7 @@ DEPS_STAGE=0
 BUILD_STAGE=0
 SIGN_STAGE=0
 UPLOAD_STAGE=0
+BOOTSTRAP=0
 
 usage()
 {
@@ -30,6 +31,7 @@ usage()
 	echo "\t--no-rspamd: do not build rspamd packages"
 	echo "\t--no-hyperscan: do not use hyperscan"
 	echo "\t--no-luajit: do not use luajit"
+	echo "\t--bootstrap: bootstrap the specified distros"
 	echo ""
 }
 
@@ -95,6 +97,9 @@ while [ "$1" != "" ]; do
 		--upload-host)
 			UPLOAD_HOST="${VALUE}"
 			;;
+		--bootstrap)
+			BOOTSTRAP=1
+			;;
 		*)
 			echo "ERROR: unknown parameter \"$PARAM\""
 			usage
@@ -105,6 +110,33 @@ while [ "$1" != "" ]; do
 done
 
 . ./config.sh
+
+if [ ${BOOTSTRAP} -eq 1 ] ; then
+	# We can bootstrap merely debian distros now
+	for d in $DISTRIBS_DEB ; do
+		_distro=`echo $d | cut -d'-' -f 1`
+		_ver=`echo $d | cut -d'-' -f 2`
+
+		case $_distro in
+			ubuntu)
+			debootstrap \
+				--variant=buildd \
+				--arch=${MAIN_ARCH} \
+				$_ver \
+				${HOME}/$d \
+				http://ports.ubuntu.com/
+			;;
+			debian)
+			debootstrap \
+				--variant=buildd \
+				--arch=${MAIN_ARCH} \
+				$_ver \
+				${HOME}/$d \
+				http://httpredir.debian.org/debian/
+			;;
+		esac
+	done
+fi
 
 get_rspamd() {
 	rm -fr ${HOME}/rspamd ${HOME}/rspamd.build
@@ -257,7 +289,7 @@ dep_rpm() {
 	chroot ${HOME}/$d mkdir ${BUILD_DIR} \
 		${BUILD_DIR}/RPMS \
 		${BUILD_DIR}/RPMS/i386 \
-		${BUILD_DIR}/RPMS/x86_64 \
+		${BUILD_DIR}/RPMS/${MAIN_ARCH} \
 		${BUILD_DIR}/SOURCES \
 		${BUILD_DIR}/SPECS \
 		${BUILD_DIR}/SRPMS
@@ -726,7 +758,7 @@ fi # DEBIAN == 0
 
 if [ $RPM -ne 0 ] ; then
 	rm -f ${HOME}/rpm/gpg.key || true
-	ARCH="x86_64"
+	ARCH="${MAIN_ARCH}"
 	gpg --armor --output ${HOME}/rpm/gpg.key --export $KEY
 	for d in $DISTRIBS_RPM ; do
 		rm -fr ${HOME}/rpm/$d/ || true
