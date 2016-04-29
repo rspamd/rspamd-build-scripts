@@ -158,7 +158,7 @@ get_rspamd() {
 	if [ $DEBIAN -ne 0 ] ; then
 		for d in $DISTRIBS_DEB ; do
 			cp ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/
-			cp ${HOME}/rmilter.build/rspamd-${RMILTER_VER}.tar.xz ${HOME}/$d-i386/
+			cp ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d-i386/
 		done
 	fi
 	if [ $RPM -ne 0 ] ; then
