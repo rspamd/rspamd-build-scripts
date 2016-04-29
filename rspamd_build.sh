@@ -119,21 +119,21 @@ if [ ${BOOTSTRAP} -eq 1 ] ; then
 
 		case $_distro in
 			ubuntu)
-			debootstrap \
-				--variant=buildd \
-				--arch=${MAIN_ARCH} \
-				$_ver \
-				${HOME}/$d \
-				http://ports.ubuntu.com/
-			;;
+				debootstrap \
+					--variant=buildd \
+					--arch=${MAIN_ARCH} \
+					$_ver \
+					${HOME}/$d \
+					http://ports.ubuntu.com/
+				;;
 			debian)
-			debootstrap \
-				--variant=buildd \
-				--arch=${MAIN_ARCH} \
-				$_ver \
-				${HOME}/$d \
-				http://httpredir.debian.org/debian/
-			;;
+				debootstrap \
+					--variant=buildd \
+					--arch=${MAIN_ARCH} \
+					$_ver \
+					${HOME}/$d \
+					http://httpredir.debian.org/debian/
+				;;
 		esac
 	done
 fi
@@ -158,7 +158,7 @@ get_rspamd() {
 	if [ $DEBIAN -ne 0 ] ; then
 		for d in $DISTRIBS_DEB ; do
 			cp ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/
-			cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d-i386/
+			cp ${HOME}/rmilter.build/rspamd-${RMILTER_VER}.tar.xz ${HOME}/$d-i386/
 		done
 	fi
 	if [ $RPM -ne 0 ] ; then
