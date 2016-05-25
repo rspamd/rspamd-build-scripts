@@ -9,6 +9,7 @@ BUILD_STAGE=0
 SIGN_STAGE=0
 UPLOAD_STAGE=0
 BOOTSTRAP=0
+ARM=0
 
 usage()
 {
@@ -32,6 +33,7 @@ usage()
 	echo "\t--no-hyperscan: do not use hyperscan"
 	echo "\t--no-luajit: do not use luajit"
 	echo "\t--bootstrap: bootstrap the specified distros"
+	echo "\t--arm <dir>: use arm deb packages from specified directory"
 	echo ""
 }
 
@@ -99,6 +101,9 @@ while [ "$1" != "" ]; do
 			;;
 		--bootstrap)
 			BOOTSTRAP=1
+			;;
+		--arm)
+			ARM="${VALUE}"
 			;;
 		*)
 			echo "ERROR: unknown parameter \"$PARAM\""
@@ -706,6 +711,9 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
 			else
 				ARCHS="source amd64"
 			fi
+			if [ $ARM -ne 0 ] ; then
+				ARCHS="${ARCHS} armhf"
+			fi
 			_repodir=${HOME}/repos/
 			cat >> $_repodir/conf/distributions <<EOD
 Origin: Rspamd
@@ -740,18 +748,37 @@ if [ -z "${NO_I386}" ] ; then
 	if [ -z "${NO_RSPAMD}" ] ; then
 		dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd_${_pkg_ver}*.deb
 		dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd-dbg_${_pkg_ver}*.deb
+		debsign --re-sign -k $KEY ${HOME}/$d/rspamd_${_pkg_ver}*.changes
 		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd_${_pkg_ver}_i386.deb
 		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd-dbg_${_pkg_ver}_i386.deb
-		debsign --re-sign -k $KEY ${HOME}/$d/rspamd_${_pkg_ver}*.changes
 	fi
-	dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.deb
-	dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter-dbg_${_rmilter_pkg_ver}*.deb
-	debsign --re-sign -k $KEY ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.changes
-	reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter_${_rmilter_pkg_ver}_i386.deb
-	reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter-dbg_${_rmilter_pkg_ver}_i386.deb
+	if [ -z "${NO_RMILTER}" ] ; then
+		dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.deb
+		dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter-dbg_${_rmilter_pkg_ver}*.deb
+		debsign --re-sign -k $KEY ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.changes
+		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter_${_rmilter_pkg_ver}_i386.deb
+		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter-dbg_${_rmilter_pkg_ver}_i386.deb
+	fi
 fi
 
-gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
+if [ $ARM -ne 0 ] ; then
+	if [ -z "${NO_RSPAMD}" ] ; then
+		dpkg-sig -k $KEY --batch=1 --sign builder ${ARM}/$d/rspamd_${_pkg_ver}*.deb
+		dpkg-sig -k $KEY --batch=1 --sign builder ${ARM}/$d/rspamd-dbg_${_pkg_ver}*.deb
+		debsign --re-sign -k $KEY ${ARM}/$d/rspamd_${_pkg_ver}*.changes
+		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${ARM}/$d/rspamd_${_pkg_ver}_armhf.deb
+		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${ARM}/$d/rspamd-dbg_${_pkg_ver}_armhf.deb
+	fi
+	if [ -z "${NO_RMILTER}" ] ; then
+		dpkg-sig -k $KEY --batch=1 --sign builder ${ARM}/$d/rmilter_${_rmilter_pkg_ver}*.deb
+		dpkg-sig -k $KEY --batch=1 --sign builder ${ARM}/$d/rmilter-dbg_${_rmilter_pkg_ver}*.deb
+		debsign --re-sign -k $KEY ${ARM}/$d/rmilter_${_rmilter_pkg_ver}*.changes
+		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${ARM}/$d/rmilter_${_rmilter_pkg_ver}_armhf.deb
+		reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${ARM}/$d/rmilter-dbg_${_rmilter_pkg_ver}_armhf.deb
+	fi
+fi
+
+	gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
 	mv $_repodir/dists/$_distname/Release.sig $_repodir/dists/$_distname/Release.gpg
 	done
 fi # DEBIAN == 0
