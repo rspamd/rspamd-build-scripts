@@ -10,6 +10,7 @@ SIGN_STAGE=0
 UPLOAD_STAGE=0
 BOOTSTRAP=0
 ARM=0
+DIST=0
 
 usage()
 {
@@ -34,6 +35,7 @@ usage()
 	echo "\t--no-luajit: do not use luajit"
 	echo "\t--bootstrap: bootstrap the specified distros"
 	echo "\t--arm <dir>: use arm deb packages from specified directory"
+	echo "\t--dist: touch the specified dist only"
 	echo ""
 }
 
@@ -105,6 +107,10 @@ while [ "$1" != "" ]; do
 		--arm)
 			ARM="${VALUE}"
 			;;
+		--dist)
+			DIST=1
+			DISTS="${VALUE}"
+			;;
 		*)
 			echo "ERROR: unknown parameter \"$PARAM\""
 			usage
@@ -141,6 +147,31 @@ if [ ${BOOTSTRAP} -eq 1 ] ; then
 				;;
 		esac
 	done
+fi
+
+if [ ${DIST} -ne 0 ] ; then
+	_found=0
+	DEBIAN=0
+	RPM=0
+	for d in $DISTRIBS_DEB ; do
+		if [ "$d" = "${DISTS}" ] ; then
+			DEBIAN=1
+			DISTRIBS_DEB="$d"
+			_found=1
+		fi
+	done
+	for d in $DISTRIBS_RPM ; do
+		if [ "$d" = "${DISTS}" ] ; then
+			RPM=1
+			DISTRIBS_RPM="$d"
+			_found=1
+		fi
+	done
+
+	if [ $_found -eq 0 ] ; then
+		echo "Unknown --dist: $DISTS"
+		exit 1
+	fi
 fi
 
 get_rspamd() {
@@ -778,7 +809,7 @@ if [ $ARM -ne 0 ] ; then
 	fi
 fi
 
-	gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
+gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
 	mv $_repodir/dists/$_distname/Release.sig $_repodir/dists/$_distname/Release.gpg
 	done
 fi # DEBIAN == 0
@@ -825,6 +856,14 @@ done
 fi # RPM == 0
 fi
 
+RSYNC_ARGS="-rup"
+
+if [ $DIST -eq 0 ] ; then
+	if [ $RPM -eq 1 -and $DEBIAN -eq 1 ] ; then
+		RSYNC_ARGS="${RSYNC_ARGS} --delete --delete-before"
+	fi
+fi
+
 if [ ${UPLOAD_STAGE} -eq 1 ] ; then
 	if [ -z "${UPLOAD_HOST}" ] ; then
 		echo "No UPLOAD_HOST specified, exiting"
@@ -833,20 +872,20 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
 
 	if [ $DEBIAN -ne 0 ] ; then
 		if [ -n "${STABLE}" ] ; then
-			rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" -rup --delete --delete-before \
+			rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" ${RSYNC_ARGS} \
 				${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_STABLE}
 		else
-			rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" -rup --delete --delete-before \
+			rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" ${RSYNC_ARGS} \
 				${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_UNSTABLE}
 		fi
 	fi
 
 	if [ $RPM -ne 0 ] ; then
 		if [ -n "${STABLE}" ] ; then
-			rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" -rup --delete --delete-before \
+			rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
 				${HOME}/rpm/* ${UPLOAD_HOST}:${TARGET_RPM_STABLE}
 		else
-			rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" -rup --delete --delete-before \
+			rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
 				${HOME}/rpm/* ${UPLOAD_HOST}:${TARGET_RPM_UNSTABLE}
 		fi
 	fi
