@@ -11,6 +11,7 @@ UPLOAD_STAGE=0
 BOOTSTRAP=0
 ARM=0
 DIST=0
+UPDATE_HYPERSCAN=0
 
 usage()
 {
@@ -36,6 +37,7 @@ usage()
 	echo "\t--bootstrap: bootstrap the specified distros"
 	echo "\t--arm <dir>: use arm deb packages from specified directory"
 	echo "\t--dist: touch the specified dist only"
+	echo "\t--update-hyperscan: update (and recompile) hyperscan version"
 	echo ""
 }
 
@@ -110,6 +112,9 @@ while [ "$1" != "" ]; do
 		--dist)
 			DIST=1
 			DISTS="${VALUE}"
+			;;
+		--update-hyperscan)
+			UPDATE_HYPERSCAN=1
 			;;
 		*)
 			echo "ERROR: unknown parameter \"$PARAM\""
@@ -250,7 +255,9 @@ dep_deb() {
 	if [ -n "${HYPERSCAN}" -a -z "${NO_HYPERSCAN}" ] ; then
 		echo $d | grep 'i386' > /dev/null
 		if [ $? -ne 0 ] ; then
-			#rm -fr ${HOME}/$d/opt/hyperscan
+			if [ ${UPDATE_HYPERSCAN} -ne 0 ] ; then
+				rm -fr ${HOME}/$d/opt/hyperscan
+			fi
 			if [ ! -d ${HOME}/$d/opt/hyperscan ] ; then
 				rm -fr ${HOME}/$d/hyperscan ${HOME}/$d/hyperscan.build
 				chroot ${HOME}/$d "/usr/bin/git" clone https://github.com/01org/hyperscan.git
@@ -295,7 +302,9 @@ dep_rpm() {
 	if [ -n "${HYPERSCAN}" -a -z "${NO_HYPERSCAN}" ] ; then
 		echo $d | grep 'i386' > /dev/null
 		if [ $? -ne 0 ] ; then
-			#rm -fr ${HOME}/$d/opt/hyperscan
+			if [ ${UPDATE_HYPERSCAN} -ne 0 ] ; then
+				rm -fr ${HOME}/$d/opt/hyperscan
+			fi
 			if [ ! -d ${HOME}/$d/opt/hyperscan ] ; then
 				rm -fr ${HOME}/$d/hyperscan ${HOME}/$d/hyperscan.build
 				chroot ${HOME}/$d "/usr/bin/git" clone https://github.com/01org/hyperscan.git
