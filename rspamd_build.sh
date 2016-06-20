@@ -868,7 +868,7 @@ fi
 RSYNC_ARGS="-rup"
 
 if [ $DIST -eq 0 ] ; then
-	if [ $RPM -eq 1 -and $DEBIAN -eq 1 ] ; then
+	if [ $RPM -eq 1 -a $DEBIAN -eq 1 ] ; then
 		RSYNC_ARGS="${RSYNC_ARGS} --delete --delete-before"
 	fi
 fi
