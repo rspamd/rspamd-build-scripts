@@ -166,7 +166,6 @@ fi
 %if 0%{?el6}
 %{_initrddir}/%{name}
 %endif
-%{_mandir}/man8/%{name}.*
 %{_sbindir}/rmilter
 %attr(-, _rmilter, adm) %dir %{rmilter_home}
 %config(noreplace) %{_sysconfdir}/rmilter/%{name}.conf
