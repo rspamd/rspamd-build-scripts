@@ -267,16 +267,16 @@ dep_deb() {
         ( cd ${HOME}/$d ; tar xzf ${HOME}/boost.tar.gz )
         mkdir ${HOME}/$d/hyperscan.build
         chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; cmake \
-          ../hyperscan -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
+          -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
           -DBOOST_ROOT=/boost_1_59_0 \
-          -DCMAKE_BUILD_TYPE=MinSizeRel \
+          -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_FLAGS=-march=core2 \
-          -DCMAKE_CXX_FLAGS=-march=core2 && \
-          make -j2 && make install"
+          -DCMAKE_CXX_FLAGS=-march=core2 \
+          ../hyperscan && \
+          make -j2 && make install/strip"
         if [ $? -ne 0 ] ; then
           exit 1
         fi
-        strip -d ${HOME}/$d/opt/hyperscan/lib/libhs*
       else
         # cleanup build
         rm -fr ${HOME}/$d/hyperscan ${HOME}/$d/hyperscan.build ${HOME}/$d/boost_1_59_0 || true
