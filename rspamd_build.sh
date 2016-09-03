@@ -757,15 +757,15 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
       fi
       _repodir=${HOME}/repos/
       cat >> $_repodir/conf/distributions <<EOD
-      Origin: Rspamd
-      Label: Rspamd
-      Codename: ${_distname}
-      Architectures: ${ARCHS}
-      Components: main
-      Description: ${_repo_descr}
-      SignWith: ${KEY}
+Origin: Rspamd
+Label: Rspamd
+Codename: ${_distname}
+Architectures: ${ARCHS}
+Components: main
+Description: ${_repo_descr}
+SignWith: ${KEY}
 
-      EOD
+EOD
       if [ -z "${NO_RSPAMD}" ] ; then
         dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd_${_pkg_ver}*.deb
         dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd-dbg_${_pkg_ver}*.deb
@@ -842,24 +842,24 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
 
       if [ -n "${STABLE}" ] ; then
         cat <<EOD > ${HOME}/rpm/$d/rspamd.repo
-        [rspamd]
-        name=Rspamd stable repository
-        baseurl=http://rspamd.com/rpm-stable/$d/${ARCH}/
-        enabled=1
-        gpgcheck=1
-        repo_gpgcheck=1
-        gpgkey=http://rspamd.com/rpm/gpg.key
-        EOD
+[rspamd]
+name=Rspamd stable repository
+baseurl=http://rspamd.com/rpm-stable/$d/${ARCH}/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=http://rspamd.com/rpm/gpg.key
+EOD
       else
         cat <<EOD > ${HOME}/rpm/$d/rspamd-experimental.repo
-        [rspamd-experimental]
-        name=Rspamd experimental repository
-        baseurl=http://rspamd.com/rpm/$d/${ARCH}/
-        enabled=1
-        gpgcheck=1
-        repo_gpgcheck=1
-        gpgkey=http://rspamd.com/rpm/gpg.key
-        EOD
+[rspamd-experimental]
+name=Rspamd experimental repository
+baseurl=http://rspamd.com/rpm/$d/${ARCH}/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=http://rspamd.com/rpm/gpg.key
+EOD
       fi
 
     done
