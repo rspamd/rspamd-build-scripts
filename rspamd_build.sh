@@ -12,6 +12,7 @@ BOOTSTRAP=0
 ARM=0
 DIST=0
 UPDATE_HYPERSCAN=0
+CMAKE=cmake
 
 usage()
 {
@@ -34,6 +35,7 @@ usage()
   echo "\t--no-rspamd: do not build rspamd packages"
   echo "\t--no-hyperscan: do not use hyperscan"
   echo "\t--no-luajit: do not use luajit"
+  echo "\t--no-jemalloc: do not use jemalloc"
   echo "\t--bootstrap: bootstrap the specified distros"
   echo "\t--arm <dir>: use arm deb packages from specified directory"
   echo "\t--dist: touch the specified dist only"
@@ -99,6 +101,9 @@ while [ "$1" != "" ]; do
       ;;
     --no-luajit)
       NO_LUAJIT=1
+      ;;
+    --no-jemalloc)
+      NO_JEMALLOC=1
       ;;
     --upload-host)
       UPLOAD_HOST="${VALUE}"
@@ -270,8 +275,8 @@ dep_deb() {
           -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
           -DBOOST_ROOT=/boost_1_59_0 \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_C_FLAGS=-march=core2 \
-          -DCMAKE_CXX_FLAGS=-march=core2 \
+          -DCMAKE_C_FLAGS=\"-fpic -fPIC -march=core2\" \
+          -DCMAKE_CXX_FLAGS=\"-fPIC -fpic -march=core2\" && \
           ../hyperscan && \
           make -j2 && make install/strip"
         if [ $? -ne 0 ] ; then
@@ -296,6 +301,7 @@ dep_rpm() {
 
   chroot ${HOME}/$d ${YUM} update
   chroot ${HOME}/$d ${YUM} install ${REAL_DEPS}
+  chroot ${HOME}/$d ${YUM} install ${CMAKE}
   if [ $? -ne 0 ] ; then
     exit 1
   fi
@@ -314,12 +320,12 @@ dep_rpm() {
         fi
         ( cd ${HOME}/$d ; tar xzf ${HOME}/boost.tar.gz )
         mkdir ${HOME}/$d/hyperscan.build
-        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; cmake \
+        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; ${CMAKE} \
           ../hyperscan -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
           -DBOOST_ROOT=/boost_1_59_0 \
-          -DCMAKE_BUILD_TYPE=MinSizeRel \
-          -DCMAKE_C_FLAGS=-march=core2 \
-          -DCMAKE_CXX_FLAGS=-march=core2 && \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_C_FLAGS=\"-fpic -fPIC -march=core2\" \
+          -DCMAKE_CXX_FLAGS=\"-fPIC -fpic -march=core2\" && \
           make -j2 && make install"
         if [ $? -ne 0 ] ; then
           exit 1
@@ -392,6 +398,7 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 
     for d in $DISTRIBS_RPM ; do
       HYPERSCAN=""
+      CMAKE="cmake"
 
       case $d in
         opensuse-*)
@@ -420,6 +427,8 @@ if [ $DEPS_STAGE -eq 1 ] ; then
         centos-7)
           REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel"
           YUM="yum -y"
+          HYPERSCAN="yes"
+          CMAKE="cmake3"
           ;;
         *)
           YUM="yum -y"
@@ -460,6 +469,9 @@ build_rspamd_deb() {
   fi
   if [ -n "${NO_LUAJIT}" ] ; then
     RULES_SED="${RULES_SED} -e \"s/-DENABLE_LUAJIT=ON/-DENABLE_LUAJIT=OFF/\""
+  fi
+  if [ -n "${NO_JEMALLOC}" ] ; then
+    RULES_SED="${RULES_SED} -e \"s/-DENABLE_JEMALLOC=ON/-DENABLE_JEMALLOC=OFF/\""
   fi
   chroot ${HOME}/$d sh -c "rm -fr rspamd-${RSPAMD_VER} ; tar xvf rspamd-${RSPAMD_VER}.tar.xz"
   chroot ${HOME}/$d sh -c "cp rspamd-${RSPAMD_VER}.tar.xz rspamd_${RSPAMD_VER}.orig.tar.xz"
