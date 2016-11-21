@@ -548,13 +548,21 @@ build_rspamd_rpm() {
   _id=`git -C ${HOME}/rspamd rev-parse --short HEAD`
   echo "******* BUILD RSPAMD ${RSPAMD_VER} FOR $d ********"
   cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}/SPECS
+  RPM_EXTRA="-DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON"
+  if [ -n "${HYPERSCAN}" ] ; then
+    RPM_EXTRA="${RPM_EXTRA} -DENABLE_HYPERSCAN=ON"
+  fi
   if [ -n "${STABLE}" ] ; then
     sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
       -e "s/^Release: [0-9]*$/Release: ${_version}/" \
+      -e "s/@@CMAKE@@/${CMAKE}/" \
+      -e "s/@@EXTRA@@/${RPM_EXTRA}/" \
       < ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
   else
     sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
       -e "s/^Release: [0-9]*$/Release: ${_version}.git${_id}/" \
+      -e "s/@@CMAKE@@/${CMAKE}/" \
+      -e "s/@@EXTRA@@/${RPM_EXTRA}/" \
       < ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
   fi
 
@@ -671,6 +679,31 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 
     if [ $RPM -ne 0 ] ; then
       for d in $DISTRIBS_RPM ; do
+        HYPERSCAN=""
+        CMAKE="cmake"
+
+        case $d in
+          opensuse-*)
+            HYPERSCAN="yes"
+            ;;
+          fedora-22*)
+            HYPERSCAN="yes"
+            ;;
+          fedora-23*)
+            HYPERSCAN="yes"
+            ;;
+          fedora-21*)
+            ;;
+          centos-6)
+            ;;
+          centos-7)
+            HYPERSCAN="yes"
+            CMAKE="cmake3"
+            ;;
+          *)
+            YUM="yum -y"
+            REAL_DEPS="$DEPS_RPM sqlite-devel ${LUAJIT_DEP}" ;;
+        esac
         build_rspamd_rpm $d
       done
     fi
