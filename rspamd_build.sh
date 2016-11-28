@@ -276,7 +276,7 @@ dep_deb() {
           -DBOOST_ROOT=/boost_1_59_0 \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_FLAGS=\"-fpic -fPIC -march=core2\" \
-          -DCMAKE_CXX_FLAGS=\"-fPIC -fpic -march=core2\" && \
+          -DCMAKE_CXX_FLAGS=\"-fPIC -fpic -march=core2\" \
           ../hyperscan && \
           make -j2 && make install/strip"
         if [ $? -ne 0 ] ; then
