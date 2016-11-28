@@ -877,6 +877,9 @@ EOD
       rm -fr ${HOME}/rpm/$d/ || true
       mkdir -p ${HOME}/rpm/$d/${ARCH} || true
       cp ${HOME}/${d}/${BUILD_DIR}/RPMS/${ARCH}/*.rpm ${HOME}/rpm/$d/${ARCH}
+      if [ $d == "centos-6" ] ; then
+        cp ${HOME}/${d}/gmime*.rpm ${HOME}/rpm/$d/${ARCH}
+      fi
       for p in ${HOME}/rpm/$d/${ARCH}/*.rpm ; do
         ./rpm_sign.expect $p
       done

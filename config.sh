@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 export DEPS_DEB="fakeroot make ca-certificates less git vim devscripts debhelper \
   dpkg-dev cmake libevent-dev libglib2.0-dev libgmime-2.6-dev libpcre3-dev \
   libssl-dev libcurl4-openssl-dev libsqlite3-dev perl libopendkim-dev \
@@ -17,7 +16,7 @@ export DEPS_RPM="glib2-devel libevent-devel openssl-devel pcre-devel perl \
   flex file-devel fann-devel git rsync perl-Digest-MD5 libmemcached-devel ragel perl-Digest-MD5"
 
 export MAIN_ARCH="x86_64"
-export RSPAMD_VER_UNSTABLE="1.4.0"
+export RSPAMD_VER_UNSTABLE="1.4.1"
 export RSPAMD_VER_STABLE="1.4.0"
 export RMILTER_VER_UNSTABLE="1.10.0"
 export RMILTER_VER_STABLE="1.10.0"
