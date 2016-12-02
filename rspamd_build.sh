@@ -494,7 +494,7 @@ build_rspamd_deb() {
   fi
   chroot ${HOME}/$d sh -c "sed -e 's/native/quilt/' < rspamd-${RSPAMD_VER}/debian/source/format > /tmp/.tt ; \
     mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/source/format"
-  chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; debuild -us -uc"
+  chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no debuild -us -uc"
   if [ $? -ne 0 ] ; then
     exit 1
   fi
@@ -537,7 +537,7 @@ build_rmilter_deb() {
   fi
   chroot ${HOME}/$d sh -c "sed -e 's/native/quilt/' < rmilter-${RMILTER_VER}/debian/source/format > /tmp/.tt ; \
     mv /tmp/.tt rmilter-${RMILTER_VER}/debian/source/format"
-  chroot ${HOME}/$d sh -c "cd rmilter-${RMILTER_VER} ; debuild -us -uc"
+  chroot ${HOME}/$d sh -c "cd rmilter-${RMILTER_VER} ; DEBUILD_LINTIAN=no debuild -us -uc"
   if [ $? -ne 0 ] ; then
     exit 1
   fi
@@ -877,7 +877,7 @@ EOD
       rm -fr ${HOME}/rpm/$d/ || true
       mkdir -p ${HOME}/rpm/$d/${ARCH} || true
       cp ${HOME}/${d}/${BUILD_DIR}/RPMS/${ARCH}/*.rpm ${HOME}/rpm/$d/${ARCH}
-      if [ $d == "centos-6" ] ; then
+      if [ "$d" = "centos-6" ] ; then
         cp ${HOME}/${d}/gmime*.rpm ${HOME}/rpm/$d/${ARCH}
       fi
       for p in ${HOME}/rpm/$d/${ARCH}/*.rpm ; do
