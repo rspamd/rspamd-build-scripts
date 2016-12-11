@@ -256,6 +256,7 @@ dep_deb() {
   rm -f ${HOME}/$d/*.build
 
   chroot ${HOME}/$d "/usr/bin/apt-get" update
+  chroot ${HOME}/$d "/usr/bin/apt-get" upgrade -y
   chroot ${HOME}/$d "/usr/bin/apt-get" install -y --no-install-recommends ${REAL_DEPS}
   if [ -n "${HYPERSCAN}" -a -z "${NO_HYPERSCAN}" ] ; then
     echo $d | grep 'i386' > /dev/null
@@ -367,13 +368,13 @@ if [ $DEPS_STAGE -eq 1 ] ; then
       fi
 
       case $d in
-        debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}" HYPERSCAN="yes";;
-        debian-sid) REAL_DEPS="$DEPS_DEB dh-systemd build-essential ${LUAJIT_DEP}" HYPERSCAN="yes";;
-        debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev" ;;
-        ubuntu-precise) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}" ;;
-        ubuntu-xenial) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}" HYPERSCAN="yes";;
+        debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev" HYPERSCAN="yes";;
+        debian-sid) REAL_DEPS="$DEPS_DEB dh-systemd build-essential ${LUAJIT_DEP} libgd-dev" HYPERSCAN="yes";;
+        debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev libgd2-noxpm-dev" ;;
+        ubuntu-precise) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd2-noxpm-dev" ;;
+        ubuntu-xenial) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev" HYPERSCAN="yes";;
         ubuntu-*)
-          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd-dev"
           HYPERSCAN="yes"
           ;;
         *) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}" HYPERSCAN="yes" ;;
