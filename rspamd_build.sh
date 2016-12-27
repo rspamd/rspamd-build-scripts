@@ -12,6 +12,8 @@ BOOTSTRAP=0
 ARM=0
 DIST=0
 UPDATE_HYPERSCAN=0
+NO_OPT=0
+EXTRA_OPT=0
 CMAKE=cmake
 
 usage()
@@ -36,6 +38,8 @@ usage()
   echo "\t--no-hyperscan: do not use hyperscan"
   echo "\t--no-luajit: do not use luajit"
   echo "\t--no-jemalloc: do not use jemalloc"
+  echo "\t--no-opt: disable all optimizations"
+  echo "\t--extra-opt: enable extra optimizations"
   echo "\t--bootstrap: bootstrap the specified distros"
   echo "\t--arm <dir>: use arm deb packages from specified directory"
   echo "\t--dist: touch the specified dist only"
@@ -104,6 +108,12 @@ while [ "$1" != "" ]; do
       ;;
     --no-jemalloc)
       NO_JEMALLOC=1
+      ;;
+    --no-opt)
+      NO_OPT=1
+      ;;
+    --extra-opt)
+      EXTRA_OPT=1
       ;;
     --upload-host)
       UPLOAD_HOST="${VALUE}"
@@ -474,6 +484,12 @@ build_rspamd_deb() {
   if [ -n "${NO_JEMALLOC}" ] ; then
     RULES_SED="${RULES_SED} -e \"s/-DENABLE_JEMALLOC=ON/-DENABLE_JEMALLOC=OFF/\""
   fi
+  if [ ${NO_OPT} -eq 1 ] ; then
+    RULES_SED="${RULES_SED} -e \"s/-DENABLE_FULL_DEBUG=OFF/-DENABLE_FULL_DEBUG=ON/\""
+  fi
+  if [ ${EXTRA_OPT} -eq 1 ] ; then
+    RULES_SED="${RULES_SED} -e \"s/-DENABLE_OPTIMIZATION=OFF/-DENABLE_OPTIMIZATION=ON/\""
+  fi
   chroot ${HOME}/$d sh -c "rm -fr rspamd-${RSPAMD_VER} ; tar xvf rspamd-${RSPAMD_VER}.tar.xz"
   chroot ${HOME}/$d sh -c "cp rspamd-${RSPAMD_VER}.tar.xz rspamd_${RSPAMD_VER}.orig.tar.xz"
   chroot ${HOME}/$d sh -c "sed -e \"s/Build-Depends:.*/Build-Depends: ${_deps_line}/\" -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/control"
@@ -495,7 +511,11 @@ build_rspamd_deb() {
   fi
   chroot ${HOME}/$d sh -c "sed -e 's/native/quilt/' < rspamd-${RSPAMD_VER}/debian/source/format > /tmp/.tt ; \
     mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/source/format"
-  chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc"
+  if [ ${NO_OPT} -eq 1 ] ; then
+    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no DEB_CFLAGS_SET=\"-g -O0\" dpkg-buildpackage -us -uc"
+  else
+    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc"
+  fi
   if [ $? -ne 0 ] ; then
     exit 1
   fi
