@@ -13,6 +13,7 @@ ARM=0
 DIST=0
 UPDATE_HYPERSCAN=0
 NO_OPT=0
+JOBS=2
 EXTRA_OPT=0
 CMAKE=cmake
 
@@ -44,6 +45,7 @@ usage()
   echo "\t--arm <dir>: use arm deb packages from specified directory"
   echo "\t--dist: touch the specified dist only"
   echo "\t--update-hyperscan: update (and recompile) hyperscan version"
+  echo "\t--jobs: number of jobs to parallel processing (default: 2)"
   echo ""
 }
 
@@ -131,6 +133,9 @@ while [ "$1" != "" ]; do
     --update-hyperscan)
       UPDATE_HYPERSCAN=1
       ;;
+    --jobs)
+      JOBS="${VALUE}"
+      ;;
     *)
       echo "ERROR: unknown parameter \"$PARAM\""
       usage
@@ -141,6 +146,8 @@ while [ "$1" != "" ]; do
 done
 
 . ./config.sh
+
+DISTRIBS_RPM_FULL="${DISTRIBS_RPM}"
 
 if [ ${BOOTSTRAP} -eq 1 ] ; then
   # We can bootstrap merely debian distros now
@@ -488,7 +495,10 @@ build_rspamd_deb() {
     RULES_SED="${RULES_SED} -e \"s/-DENABLE_FULL_DEBUG=OFF/-DENABLE_FULL_DEBUG=ON/\""
   fi
   if [ ${EXTRA_OPT} -eq 1 ] ; then
-    RULES_SED="${RULES_SED} -e \"s/-DENABLE_OPTIMIZATION=OFF/-DENABLE_OPTIMIZATION=ON/\""
+    if [ $_distname != 'wheezy' ] ; then
+      # Wheezy is shit
+      RULES_SED="${RULES_SED} -e \"s/-DENABLE_OPTIMIZATION=OFF/-DENABLE_OPTIMIZATION=ON/\""
+    fi
   fi
   chroot ${HOME}/$d sh -c "rm -fr rspamd-${RSPAMD_VER} ; tar xvf rspamd-${RSPAMD_VER}.tar.xz"
   chroot ${HOME}/$d sh -c "cp rspamd-${RSPAMD_VER}.tar.xz rspamd_${RSPAMD_VER}.orig.tar.xz"
@@ -570,18 +580,24 @@ build_rspamd_rpm() {
   echo "******* BUILD RSPAMD ${RSPAMD_VER} FOR $d ********"
   cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}/SPECS
   RPM_EXTRA="-DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON"
+  if [ ${NO_OPT} -eq 1 ] ; then
+    RPM_EXTRA="${RPM_EXTRA} -DENABLE_FULL_DEBUG=ON"
+  fi
+  if [ ${EXTRA_OPT} -eq 1 ] ; then
+    RPM_EXTRA="${RPM_EXTRA} -DENABLE_OPTIMIZATION=ON"
+  fi
   if [ -n "${HYPERSCAN}" ] ; then
     RPM_EXTRA="${RPM_EXTRA} -DENABLE_HYPERSCAN=ON"
   fi
   if [ -n "${STABLE}" ] ; then
     sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
-      -e "s/^Release: [0-9]*$/Release: ${_version}/" \
+      -e "s/^Release:[\t ]*[0-9]*$/Release: ${_version}/" \
       -e "s/@@CMAKE@@/${CMAKE}/" \
       -e "s/@@EXTRA@@/${RPM_EXTRA}/" \
       < ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
   else
     sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
-      -e "s/^Release: [0-9]*$/Release: ${_version}.git${_id}/" \
+      -e "s/^Release:[ \t]*[0-9]*$/Release: ${_version}.git${_id}/" \
       -e "s/@@CMAKE@@/${CMAKE}/" \
       -e "s/@@EXTRA@@/${RPM_EXTRA}/" \
       < ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
@@ -590,7 +606,7 @@ build_rspamd_rpm() {
   mv /tmp/.tt ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec
 
   chroot ${HOME}/$d rpmbuild \
-    --define='jobs 4' \
+    --define='jobs ${JOBS}' \
     --define='BuildRoot %{_tmppath}/%{name}' \
     --define="_topdir ${BUILD_DIR}" \
     -ba ${BUILD_DIR}/SPECS/rspamd.spec
@@ -606,16 +622,16 @@ build_rmilter_rpm() {
   cp ${HOME}/rpm/SPECS/rmilter.spec ${HOME}/$d/${BUILD_DIR}/SPECS
   if [ -n "${STABLE}" ] ; then
     sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RMILTER_VER}/" \
-      -e "s/^Release: [0-9]*$/Release: ${_version}/" \
+      -e "s/^Release:[ \t]*[0-9]*$/Release: ${_version}/" \
       < ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec > /tmp/.tt
   else
     sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RMILTER_VER}/" \
-      -e "s/^Release: [0-9]*$/Release: ${_version}.git${_id}/" \
+      -e "s/^Release:[ \t]*[0-9]*$/Release: ${_version}.git${_id}/" \
       < ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec > /tmp/.tt
   fi
   mv /tmp/.tt ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec
   chroot ${HOME}/$d rpmbuild \
-    --define='jobs 4' \
+    --define='jobs ${JOBS}' \
     --define='BuildRoot %{_tmppath}/%{name}' \
     --define="_topdir ${BUILD_DIR}" \
     -ba ${BUILD_DIR}/SPECS/rmilter.spec
@@ -628,10 +644,10 @@ build_rmilter_rpm() {
 if [ $BUILD_STAGE -eq 1 ] ; then
 
   if [ -n "${STABLE}" ] ; then
-    export DEB_BUILD_OPTIONS="parallel=8"
+    export DEB_BUILD_OPTIONS="parallel=${JOBS}"
     _version="${STABLE_VER}"
   else
-    export DEB_BUILD_OPTIONS="parallel=8 nostrip"
+    export DEB_BUILD_OPTIONS="parallel=${JOBS} nostrip"
     _version=`cat ${HOME}/version || echo 0`
     if [ $# -ge 1 ] ; then
       DISTRIBS=$@
@@ -894,9 +910,11 @@ EOD
     rm -f ${HOME}/rpm/gpg.key || true
     ARCH="${MAIN_ARCH}"
     gpg --armor --output ${HOME}/rpm/gpg.key --export $KEY
-    for d in $DISTRIBS_RPM ; do
+    for d in $DISTRIBS_RPM_FULL ; do
       rm -fr ${HOME}/rpm/$d/ || true
       mkdir -p ${HOME}/rpm/$d/${ARCH} || true
+    done
+    for d in $DISTRIBS_RPM ; do
       cp ${HOME}/${d}/${BUILD_DIR}/RPMS/${ARCH}/*.rpm ${HOME}/rpm/$d/${ARCH}
       if [ "$d" = "centos-6" ] ; then
         cp ${HOME}/${d}/gmime*.rpm ${HOME}/rpm/$d/${ARCH}
@@ -960,12 +978,14 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
   fi
 
   if [ $RPM -ne 0 ] ; then
-    if [ -n "${STABLE}" ] ; then
-      rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
-        ${HOME}/rpm/* ${UPLOAD_HOST}:${TARGET_RPM_STABLE}
-    else
-      rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
-        ${HOME}/rpm/* ${UPLOAD_HOST}:${TARGET_RPM_UNSTABLE}
-    fi
+    for d in $DISTRIBS_RPM ; do
+      if [ -n "${STABLE}" ] ; then
+        rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
+          ${HOME}/rpm/$d/* ${UPLOAD_HOST}:${TARGET_RPM_STABLE}/$d/
+      else
+        rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
+          ${HOME}/rpm/$d/* ${UPLOAD_HOST}:${TARGET_RPM_UNSTABLE}/$d/
+      fi
+    done
   fi
 fi
