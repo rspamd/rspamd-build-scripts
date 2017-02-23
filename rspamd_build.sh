@@ -3,7 +3,7 @@
 export DEBIAN_FRONTEND="noninteractive"
 export LANG="C"
 DEBIAN=1
-RPM=0
+RPM=1
 DEPS_STAGE=0
 BUILD_STAGE=0
 SIGN_STAGE=0
