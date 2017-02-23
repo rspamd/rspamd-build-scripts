@@ -16,6 +16,7 @@ NO_OPT=0
 JOBS=2
 EXTRA_OPT=0
 CMAKE=cmake
+LOG="./rspamd_build.log"
 
 usage()
 {
@@ -522,9 +523,9 @@ build_rspamd_deb() {
   chroot ${HOME}/$d sh -c "sed -e 's/native/quilt/' < rspamd-${RSPAMD_VER}/debian/source/format > /tmp/.tt ; \
     mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/source/format"
   if [ ${NO_OPT} -eq 1 ] ; then
-    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no DEB_CFLAGS_SET=\"-g -O0\" dpkg-buildpackage -us -uc"
+    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no DEB_CFLAGS_SET=\"-g -O0\" dpkg-buildpackage -us -uc" 2>&1 | tee $LOG
   else
-    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc"
+    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc" 2>&1 | tee $LOG
   fi
   if [ $? -ne 0 ] ; then
     exit 1
@@ -568,7 +569,7 @@ build_rmilter_deb() {
   fi
   chroot ${HOME}/$d sh -c "sed -e 's/native/quilt/' < rmilter-${RMILTER_VER}/debian/source/format > /tmp/.tt ; \
     mv /tmp/.tt rmilter-${RMILTER_VER}/debian/source/format"
-  chroot ${HOME}/$d sh -c "cd rmilter-${RMILTER_VER} ; DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc"
+  chroot ${HOME}/$d sh -c "cd rmilter-${RMILTER_VER} ; DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc" 2>&1 | tee $LOG
   if [ $? -ne 0 ] ; then
     exit 1
   fi
@@ -609,7 +610,7 @@ build_rspamd_rpm() {
     --define='jobs ${JOBS}' \
     --define='BuildRoot %{_tmppath}/%{name}' \
     --define="_topdir ${BUILD_DIR}" \
-    -ba ${BUILD_DIR}/SPECS/rspamd.spec
+    -ba ${BUILD_DIR}/SPECS/rspamd.spec 2>&1 | tee $LOG
   if [ $? -ne 0 ] ; then
     exit 1
   fi
@@ -634,7 +635,7 @@ build_rmilter_rpm() {
     --define='jobs ${JOBS}' \
     --define='BuildRoot %{_tmppath}/%{name}' \
     --define="_topdir ${BUILD_DIR}" \
-    -ba ${BUILD_DIR}/SPECS/rmilter.spec
+    -ba ${BUILD_DIR}/SPECS/rmilter.spec 2>&1 | tee $LOG
   if [ $? -ne 0 ] ; then
     exit 1
   fi
