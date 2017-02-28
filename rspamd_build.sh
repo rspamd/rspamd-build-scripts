@@ -12,6 +12,7 @@ BOOTSTRAP=0
 ARM=0
 DIST=0
 UPDATE_HYPERSCAN=0
+BUNDLED_LUAJIT=0
 NO_OPT=0
 JOBS=2
 EXTRA_OPT=0
@@ -47,6 +48,7 @@ usage()
   echo "\t--dist: touch the specified dist only"
   echo "\t--update-hyperscan: update (and recompile) hyperscan version"
   echo "\t--jobs: number of jobs to parallel processing (default: 2)"
+  echo "\t--bundled-luajit: enable bundled luajit (version 2.1)"
   echo ""
 }
 
@@ -136,6 +138,9 @@ while [ "$1" != "" ]; do
       ;;
     --jobs)
       JOBS="${VALUE}"
+      ;;
+    --bundled-luajit)
+      BUNDLED_LUAJIT=1
       ;;
     *)
       echo "ERROR: unknown parameter \"$PARAM\""
@@ -306,6 +311,19 @@ dep_deb() {
         rm -fr ${HOME}/$d/hyperscan ${HOME}/$d/hyperscan.build ${HOME}/$d/boost_1_59_0 || true
       fi
     fi
+  fi
+  if [ -n "${BUNDLED_LUAJIT}" ] ; then
+    rm -fr ${HOME}/$d/luajit/ ${HOME}/$d/luajit-src
+    chroot ${HOME}/$d "/usr/bin/git" clone -b v2.1 https://luajit.org/git/luajit-2.0.git /luajit-src
+    if [ $? -ne 0 ] ; then
+      exit 1
+    fi
+    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && make PREFIX=/luajit && make install PREFIX=/luajit"
+    if [ $? -ne 0 ] ; then
+      exit 1
+    fi
+    # Avoid dynamic libraries
+    rm -f ${HOME}/$d/luajit/lib/*.so
   fi
 }
 
@@ -488,6 +506,10 @@ build_rspamd_deb() {
   fi
   if [ -n "${NO_LUAJIT}" ] ; then
     RULES_SED="${RULES_SED} -e \"s/-DENABLE_LUAJIT=ON/-DENABLE_LUAJIT=OFF/\""
+  else
+    if [ -n "${BUNDLED_LUAJIT}" ] ; then
+      RULES_SED="${RULES_SED} -e \"s/-DENABLE_LUAJIT=ON/-DENABLE_LUAJIT=ON -DLUA_ROOT=\/luajit/\""
+    fi
   fi
   if [ -n "${NO_JEMALLOC}" ] ; then
     RULES_SED="${RULES_SED} -e \"s/-DENABLE_JEMALLOC=ON/-DENABLE_JEMALLOC=OFF/\""
