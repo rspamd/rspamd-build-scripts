@@ -10,14 +10,14 @@ export DISTRIBS_DEB="ubuntu-precise \
   debian-jessie \
   debian-wheezy \
   debian-sid"
-export DISTRIBS_RPM="centos-6 centos-7 fedora-23"
+export DISTRIBS_RPM="centos-6 centos-7 fedora-24 fedora-25"
 export DEPS_RPM="glib2-devel libevent-devel openssl-devel pcre-devel perl \
   hiredis-devel cmake rpm-build gmime-devel gcc make sendmail-devel bison \
   flex file-devel fann-devel git rsync perl-Digest-MD5 libmemcached-devel ragel perl-Digest-MD5 gd-devel libicu-devel"
 
 export MAIN_ARCH="x86_64"
-export RSPAMD_VER_UNSTABLE="1.5.2"
-export RSPAMD_VER_STABLE="1.5.2"
+export RSPAMD_VER_UNSTABLE="1.5.5"
+export RSPAMD_VER_STABLE="1.5.4"
 export RMILTER_VER_UNSTABLE="2.0.0"
 export RMILTER_VER_STABLE="1.10.0"
 # RPM stupidity

@@ -290,6 +290,7 @@ dep_deb() {
       if [ ! -d ${HOME}/$d/opt/hyperscan ] ; then
         rm -fr ${HOME}/$d/hyperscan ${HOME}/$d/hyperscan.build
         chroot ${HOME}/$d "/usr/bin/git" clone https://github.com/01org/hyperscan.git
+        chroot ${HOME}/$d "sed" -i -e 's/add_subdirectory/#add_subdirectory/' hyperscan/CMakeLists.txt  
         if [ $? -ne 0 ] ; then
           exit 1
         fi
@@ -299,8 +300,9 @@ dep_deb() {
           -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
           -DBOOST_ROOT=/boost_1_59_0 \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_C_FLAGS=\"-fpic -fPIC -march=core2\" \
-          -DCMAKE_CXX_FLAGS=\"-fPIC -fpic -march=core2\" \
+          -DFAT_RUNTIME=ON \
+          -DCMAKE_C_FLAGS=\"-fpic -fPIC\" \
+          -DCMAKE_CXX_FLAGS=\"-fPIC -fpic\" \
           ../hyperscan && \
           make -j2 && make install/strip"
         if [ $? -ne 0 ] ; then
@@ -443,12 +445,12 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           YUM="zypper -n"
           HYPERSCAN="yes"
           ;;
-        fedora-22*)
+        fedora-25*)
           REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel ragel gcc-c++"
           YUM="dnf --nogpgcheck -y"
           HYPERSCAN="yes"
           ;;
-        fedora-23*)
+        fedora-24*)
           REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel ragel gcc-c++"
           YUM="dnf --nogpgcheck -y"
           HYPERSCAN="yes"
