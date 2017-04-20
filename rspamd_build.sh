@@ -155,6 +155,8 @@ done
 
 DISTRIBS_RPM_FULL="${DISTRIBS_RPM}"
 
+rm ${LOG}
+
 if [ ${BOOTSTRAP} -eq 1 ] ; then
   # We can bootstrap merely debian distros now
   for d in $DISTRIBS_DEB ; do
@@ -216,6 +218,16 @@ get_rspamd() {
 
     if [ $? -ne 0 ] ; then
       exit 1
+    fi
+    
+    if [ -d ${HOME}/patches-stable/ ] ; then
+      for p in ${HOME}/patches-stable/* ; do
+        echo "Applying patch $p"
+        ( cd ${HOME}/rspamd && patch -p1 < $p )
+        if [ $? -ne 0 ] ; then
+          exit 1
+        fi
+      done
     fi
   fi
 
@@ -547,9 +559,9 @@ build_rspamd_deb() {
   chroot ${HOME}/$d sh -c "sed -e 's/native/quilt/' < rspamd-${RSPAMD_VER}/debian/source/format > /tmp/.tt ; \
     mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/source/format"
   if [ ${NO_OPT} -eq 1 ] ; then
-    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no DEB_CFLAGS_SET=\"-g -O0\" dpkg-buildpackage -us -uc" 2>&1 | tee $LOG
+    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no DEB_CFLAGS_SET=\"-g -O0\" dpkg-buildpackage -us -uc" 2>&1 | tee -a $LOG
   else
-    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc" 2>&1 | tee $LOG
+    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc" 2>&1 | tee -a $LOG
   fi
   if [ $? -ne 0 ] ; then
     exit 1
@@ -593,7 +605,7 @@ build_rmilter_deb() {
   fi
   chroot ${HOME}/$d sh -c "sed -e 's/native/quilt/' < rmilter-${RMILTER_VER}/debian/source/format > /tmp/.tt ; \
     mv /tmp/.tt rmilter-${RMILTER_VER}/debian/source/format"
-  chroot ${HOME}/$d sh -c "cd rmilter-${RMILTER_VER} ; DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc" 2>&1 | tee $LOG
+  chroot ${HOME}/$d sh -c "cd rmilter-${RMILTER_VER} ; DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc" 2>&1 | tee -a $LOG
   if [ $? -ne 0 ] ; then
     exit 1
   fi
@@ -634,7 +646,7 @@ build_rspamd_rpm() {
     --define='jobs ${JOBS}' \
     --define='BuildRoot %{_tmppath}/%{name}' \
     --define="_topdir ${BUILD_DIR}" \
-    -ba ${BUILD_DIR}/SPECS/rspamd.spec 2>&1 | tee $LOG
+    -ba ${BUILD_DIR}/SPECS/rspamd.spec 2>&1 | tee -a $LOG
   if [ $? -ne 0 ] ; then
     exit 1
   fi
@@ -659,7 +671,7 @@ build_rmilter_rpm() {
     --define='jobs ${JOBS}' \
     --define='BuildRoot %{_tmppath}/%{name}' \
     --define="_topdir ${BUILD_DIR}" \
-    -ba ${BUILD_DIR}/SPECS/rmilter.spec 2>&1 | tee $LOG
+    -ba ${BUILD_DIR}/SPECS/rmilter.spec 2>&1 | tee -a $LOG
   if [ $? -ne 0 ] ; then
     exit 1
   fi
@@ -752,6 +764,12 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             HYPERSCAN="yes"
             ;;
           fedora-23*)
+            HYPERSCAN="yes"
+            ;;
+          fedora-24*)
+            HYPERSCAN="yes"
+            ;;
+          fedora-25*)
             HYPERSCAN="yes"
             ;;
           fedora-21*)
