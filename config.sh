@@ -17,7 +17,7 @@ export DEPS_RPM="glib2-devel libevent-devel openssl-devel pcre-devel perl \
 
 export MAIN_ARCH="x86_64"
 export RSPAMD_VER_UNSTABLE="1.6.0"
-export RSPAMD_VER_STABLE="1.5.6"
+export RSPAMD_VER_STABLE="1.5.7"
 export RMILTER_VER_UNSTABLE="2.0.0"
 export RMILTER_VER_STABLE="1.10.0"
 # RPM stupidity
