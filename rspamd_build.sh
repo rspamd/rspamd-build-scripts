@@ -13,6 +13,7 @@ ARM=0
 DIST=0
 UPDATE_HYPERSCAN=0
 BUNDLED_LUAJIT=0
+UPDATE_LUAJIT=0
 NO_OPT=0
 JOBS=2
 EXTRA_OPT=0
@@ -49,6 +50,7 @@ usage()
   echo "\t--update-hyperscan: update (and recompile) hyperscan version"
   echo "\t--jobs: number of jobs to parallel processing (default: 2)"
   echo "\t--bundled-luajit: enable bundled luajit (version 2.1)"
+  echo "\t--update-luajit: update bundled luajit (2.1 branch)"
   echo ""
 }
 
@@ -140,6 +142,10 @@ while [ "$1" != "" ]; do
       JOBS="${VALUE}"
       ;;
     --bundled-luajit)
+      BUNDLED_LUAJIT=1
+      ;;
+    --update-luajit)
+      UPDATE_LUAJIT=1
       BUNDLED_LUAJIT=1
       ;;
     *)
@@ -326,7 +332,7 @@ dep_deb() {
       fi
     fi
   fi
-  if [ -n "${BUNDLED_LUAJIT}" ] ; then
+  if [ "${UPDATE_LUAJIT}" -eq 1 ] ; then
     rm -fr ${HOME}/$d/luajit/ ${HOME}/$d/luajit-src
     chroot ${HOME}/$d "/usr/bin/git" clone -b v2.1 https://luajit.org/git/luajit-2.0.git /luajit-src
     if [ $? -ne 0 ] ; then
@@ -521,7 +527,7 @@ build_rspamd_deb() {
   if [ -n "${NO_LUAJIT}" ] ; then
     RULES_SED="${RULES_SED} -e \"s/-DENABLE_LUAJIT=ON/-DENABLE_LUAJIT=OFF/\""
   else
-    if [ -n "${BUNDLED_LUAJIT}" ] ; then
+    if [ "${BUNDLED_LUAJIT}" -eq 1 ] ; then
       RULES_SED="${RULES_SED} -e \"s/-DENABLE_LUAJIT=ON/-DENABLE_LUAJIT=ON -DLUA_ROOT=\/luajit/\""
     fi
   fi
