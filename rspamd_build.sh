@@ -17,6 +17,7 @@ UPDATE_LUAJIT=0
 NO_OPT=0
 JOBS=2
 EXTRA_OPT=0
+NO_RMILTER=1
 CMAKE=cmake
 LOG="./rspamd_build.log"
 
@@ -37,7 +38,7 @@ usage()
   echo "\t--upload-host: use the following upload host"
   echo "\t--no-inc: do not increase version for rolling release"
   echo "\t--no-i386: do not build packages for i386"
-  echo "\t--no-rmilter: do not build rmilter packages"
+  echo "\t--rmilter: build rmilter packages"
   echo "\t--no-rspamd: do not build rspamd packages"
   echo "\t--no-hyperscan: do not use hyperscan"
   echo "\t--no-luajit: do not use luajit"
@@ -101,8 +102,8 @@ while [ "$1" != "" ]; do
     --no-i386)
       NO_I386=1
       ;;
-    --no-rmilter)
-      NO_RMILTER=1
+    --rmilter)
+      NO_RMILTER=""
       ;;
     --no-rspamd)
       NO_RSPAMD=1
