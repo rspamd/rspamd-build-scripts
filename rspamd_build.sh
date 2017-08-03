@@ -14,6 +14,7 @@ DIST=0
 UPDATE_HYPERSCAN=0
 BUNDLED_LUAJIT=0
 UPDATE_LUAJIT=0
+NO_TORCH=0
 NO_OPT=0
 JOBS=2
 EXTRA_OPT=0
@@ -41,7 +42,8 @@ usage()
   echo "\t--rmilter: build rmilter packages"
   echo "\t--no-rspamd: do not build rspamd packages"
   echo "\t--no-hyperscan: do not use hyperscan"
-  echo "\t--no-luajit: do not use luajit"
+  echo "\t--no-luajit: do not use luajit (implies --no-torch)"
+  echo "\t--no-torch: do not use torch"
   echo "\t--no-jemalloc: do not use jemalloc"
   echo "\t--no-opt: disable all optimizations"
   echo "\t--extra-opt: enable extra optimizations"
@@ -113,6 +115,10 @@ while [ "$1" != "" ]; do
       ;;
     --no-luajit)
       NO_LUAJIT=1
+      NO_TORCH=1
+      ;;
+    --no-torch)
+      NO_TORCH=1
       ;;
     --no-jemalloc)
       NO_JEMALLOC=1
@@ -533,6 +539,9 @@ build_rspamd_deb() {
       RULES_SED="${RULES_SED} -e \"s/-DENABLE_LUAJIT=ON/-DENABLE_LUAJIT=ON -DLUA_ROOT=\/luajit/\""
     fi
   fi
+  if [ -n "${NO_TORCH}" ] ; then
+    RULES_SED="${RULES_SED} -e \"s/-DENABLE_TORCH=ON/-DENABLE_TORCH=OFF/\""
+  fi
   if [ -n "${NO_JEMALLOC}" ] ; then
     RULES_SED="${RULES_SED} -e \"s/-DENABLE_JEMALLOC=ON/-DENABLE_JEMALLOC=OFF/\""
   fi
@@ -627,6 +636,11 @@ build_rspamd_rpm() {
   RPM_EXTRA="-DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON"
   if [ ${NO_OPT} -eq 1 ] ; then
     RPM_EXTRA="${RPM_EXTRA} -DENABLE_FULL_DEBUG=ON"
+  fi
+  if [ ${NO_TORCH} -eq 1 ] ; then
+    RPM_EXTRA="${RPM_EXTRA} -DENABLE_TORCH=OFF"
+  else
+    RPM_EXTRA="${RPM_EXTRA} -DENABLE_TORCH=ON"
   fi
   if [ ${EXTRA_OPT} -eq 1 ] ; then
     RPM_EXTRA="${RPM_EXTRA} -DENABLE_OPTIMIZATION=ON"
