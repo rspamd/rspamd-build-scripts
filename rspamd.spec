@@ -131,7 +131,7 @@ rm -rf %{buildroot}
 %post
 #to allow easy upgrade from 0.8.1
 %{__chown} -R %{rspamd_user}:%{rspamd_group} %{rspamd_home}
-%{__chown} %{rspamd_user}:%{rspamd_group} %{buildroot}%{rspamd_logdir}
+%{__chown} %{rspamd_user}:%{rspamd_group} %{rspamd_logdir}
 %if 0%{?suse_version}
 %service_add_post %{name}.service
 %endif
