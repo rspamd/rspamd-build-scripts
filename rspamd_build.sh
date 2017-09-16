@@ -430,12 +430,12 @@ if [ $DEPS_STAGE -eq 1 ] ; then
       fi
 
       case $d in
-        debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev" HYPERSCAN="yes";;
-        debian-stretch) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev" HYPERSCAN="yes";;
-        debian-sid) REAL_DEPS="$DEPS_DEB dh-systemd build-essential ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev" HYPERSCAN="yes";;
+        debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" HYPERSCAN="yes";;
+        debian-stretch) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" HYPERSCAN="yes";;
+        debian-sid) REAL_DEPS="$DEPS_DEB dh-systemd build-essential ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" HYPERSCAN="yes";;
         debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev libgd2-noxpm-dev" ;;
         ubuntu-precise) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd2-noxpm-dev" ;;
-        ubuntu-xenial) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev" HYPERSCAN="yes";;
+        ubuntu-xenial) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" HYPERSCAN="yes";;
         ubuntu-*)
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev"
           HYPERSCAN="yes"

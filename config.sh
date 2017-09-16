@@ -3,7 +3,7 @@
 export DEPS_DEB="fakeroot make ca-certificates less git vim devscripts debhelper \
   dpkg-dev cmake libevent-dev libglib2.0-dev libgmime-2.6-dev libpcre3-dev \
   libssl-dev libcurl4-openssl-dev libsqlite3-dev perl libopendkim-dev \
-  libmilter-dev bison flex libmagic-dev git ragel libfann-dev libjemalloc-dev libmemcached-dev ragel libicu-dev"
+  libmilter-dev bison flex libmagic-dev git ragel libfann-dev libjemalloc-dev libmemcached-dev ragel libicu-dev "
 export DISTRIBS_DEB="ubuntu-precise \
   ubuntu-trusty \
   ubuntu-xenial \
@@ -11,7 +11,7 @@ export DISTRIBS_DEB="ubuntu-precise \
   debian-wheezy \
   debian-stretch \
   debian-sid"
-export DISTRIBS_RPM="centos-6 centos-7 fedora-24 fedora-25"
+export DISTRIBS_RPM="centos-6 centos-7 fedora-24"
 export DEPS_RPM="glib2-devel libevent-devel openssl-devel pcre-devel perl \
   hiredis-devel cmake rpm-build gmime-devel gcc make sendmail-devel bison \
   flex file-devel fann-devel git rsync perl-Digest-MD5 libmemcached-devel ragel perl-Digest-MD5 gd-devel libicu-devel"
