@@ -19,6 +19,8 @@ JOBS=2
 EXTRA_OPT=0
 NO_RMILTER=1
 CMAKE=cmake
+C_COMPILER=gcc
+CXX_COMPILER=g++
 LOG="./rspamd_build.log"
 
 usage()
@@ -327,6 +329,8 @@ dep_deb() {
           -DFAT_RUNTIME=ON \
           -DCMAKE_C_FLAGS=\"-fpic -fPIC\" \
           -DCMAKE_CXX_FLAGS=\"-fPIC -fpic\" \
+          -DCMAKE_C_COMPILER=${SPECIFIC_C_COMPILER} \
+          -DCMAKE_CXX_COMPILER=${SPECIFIC_CXX_COMPILER} \
           ../hyperscan && \
           make -j2 && make install/strip"
         if [ $? -ne 0 ] ; then
@@ -344,7 +348,7 @@ dep_deb() {
     if [ $? -ne 0 ] ; then
       exit 1
     fi
-    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && make PREFIX=/luajit && make install PREFIX=/luajit"
+    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && make CC=${SPECIFIC_C_COMPILER} PREFIX=/luajit && make install PREFIX=/luajit"
     if [ $? -ne 0 ] ; then
       exit 1
     fi
@@ -388,8 +392,10 @@ dep_rpm() {
           -DBOOST_ROOT=/boost_1_59_0 \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_FLAGS=\"-fpic -fPIC -march=core2\" \
-          -DCMAKE_CXX_FLAGS=\"-fPIC -fpic -march=core2\" && \
-          make -j2 && make install"
+          -DCMAKE_CXX_FLAGS=\"-fPIC -fpic -march=core2\" \
+          -DCMAKE_C_COMPILER=${SPECIFIC_C_COMPILER} \
+          -DCMAKE_CXX_COMPILER=${SPECIFIC_CXX_COMPILER} \
+          && make -j4 && make install"
         if [ $? -ne 0 ] ; then
           exit 1
         fi
@@ -429,6 +435,7 @@ if [ $DEPS_STAGE -eq 1 ] ; then
         mv /tmp/.tt ${HOME}/$d/etc/apt/sources.list
       fi
 
+
       case $d in
         debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" HYPERSCAN="yes";;
         debian-stretch) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" HYPERSCAN="yes";;
@@ -436,6 +443,10 @@ if [ $DEPS_STAGE -eq 1 ] ; then
         debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev libgd2-noxpm-dev" ;;
         ubuntu-precise) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd2-noxpm-dev" ;;
         ubuntu-xenial) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" HYPERSCAN="yes";;
+        ubuntu-trusty)
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev"
+          HYPERSCAN="yes"
+          ;;
         ubuntu-*)
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev"
           HYPERSCAN="yes"
@@ -527,9 +538,9 @@ build_rspamd_deb() {
   _distname=`echo $d | sed -r -e 's/ubuntu-|debian-//' -e 's/-i386//'`
   _deps_line=`echo ${REAL_DEPS} | tr ' ' ','`
   if [ -n "${STABLE}" ] ; then
-    RULES_SED="${RULES_SED} -e \"s/-DDEBIAN_BUILD=1/-DDEBIAN_BUILD=1/\""
+    RULES_SED="${RULES_SED} -e \"s/-DDEBIAN_BUILD=1/-DDEBIAN_BUILD=1 -DCMAKE_C_COMPILER=${SPECIFIC_C_COMPILER} -DCMAKE_CXX_COMPILER=${SPECIFIC_CXX_COMPILER}/\""
   else
-    RULES_SED="${RULES_SED} -e \"s/-DDEBIAN_BUILD=1/-DDEBIAN_BUILD=1 -DGIT_ID=${_id}/\""
+    RULES_SED="${RULES_SED} -e \"s/-DDEBIAN_BUILD=1/-DDEBIAN_BUILD=1 -DGIT_ID=${_id} -DCMAKE_C_COMPILER=${SPECIFIC_C_COMPILER} -DCMAKE_CXX_COMPILER=${SPECIFIC_CXX_COMPILER}/\""
   fi
   if [ -n "${NO_LUAJIT}" ] ; then
     RULES_SED="${RULES_SED} -e \"s/-DENABLE_LUAJIT=ON/-DENABLE_LUAJIT=OFF/\""
@@ -724,6 +735,8 @@ if [ $BUILD_STAGE -eq 1 ] ; then
       fi
 
       for d in $DISTRIBS_DEB ; do
+        SPECIFIC_C_COMPILER="${C_COMPILER}"
+        SPECIFIC_CXX_COMPILER="${CXX_COMPILER}"
         case $d in
           debian-jessie)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
@@ -758,6 +771,13 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+            ;;
+          ubuntu-trusty)
+            SPECIFIC_C_COMPILER="clang-5.0"
+            SPECIFIC_CXX_COMPILER="clang++-5.0"
+            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
+            RULES_SED="-e 's/--with systemd/--parallel/' \
+              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
             ;;
           ubuntu-*)
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"

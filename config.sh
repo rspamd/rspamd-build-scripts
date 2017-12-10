@@ -14,7 +14,7 @@ export DISTRIBS_DEB="ubuntu-precise \
 export DISTRIBS_RPM="centos-6 centos-7 fedora-24"
 export DEPS_RPM="glib2-devel libevent-devel openssl-devel pcre-devel perl \
   hiredis-devel cmake rpm-build gmime-devel gcc make sendmail-devel bison \
-  flex file-devel fann-devel git rsync perl-Digest-MD5 libmemcached-devel ragel perl-Digest-MD5 gd-devel libicu-devel"
+  flex file-devel fann-devel git rsync perl-Digest-MD5 libmemcached-devel ragel perl-Digest-MD5 gd-devel libicu-devel jemalloc-devel"
 
 export MAIN_ARCH="x86_64"
 export RSPAMD_VER_UNSTABLE="1.7.0"
@@ -27,7 +27,7 @@ export BUILD_DIR="/build7558b18c49c3aede6aa20ecb0513b9eb2b39ce7db0c739ec00636900
 if [ -n "${STABLE}" ] ; then
   export RSPAMD_VER="${RSPAMD_VER_STABLE}"
   export RMILTER_VER="${RMILTER_VER_STABLE}"
-  export STABLE_VER="1"
+  export STABLE_VER="2"
 else
   export RSPAMD_VER="${RSPAMD_VER_UNSTABLE}"
   export RMILTER_VER="${RMILTER_VER_UNSTABLE}"

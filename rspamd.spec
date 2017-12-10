@@ -71,6 +71,7 @@ lua.
         -DMANDIR=%{_mandir} \
         -DDBDIR=%{_localstatedir}/lib/rspamd \
         -DRUNDIR=%{_localstatedir}/run/rspamd \
+        -DENABLE_JEMALLOC=ON \
 %if 0%{?el6}
         -DWANT_SYSTEMD_UNITS=OFF \
 %else
