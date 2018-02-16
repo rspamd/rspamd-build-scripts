@@ -387,14 +387,12 @@ dep_rpm() {
         fi
         ( cd ${HOME}/$d ; tar xzf ${HOME}/boost.tar.gz )
         mkdir ${HOME}/$d/hyperscan.build
-        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; ${CMAKE} \
+        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; source ${DEVTOOLSET_ENABLE} ; ${CMAKE} \
           ../hyperscan -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
           -DBOOST_ROOT=/boost_1_59_0 \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_FLAGS=\"-fpic -fPIC -march=core2\" \
           -DCMAKE_CXX_FLAGS=\"-fPIC -fpic -march=core2\" \
-          -DCMAKE_C_COMPILER=${SPECIFIC_C_COMPILER} \
-          -DCMAKE_CXX_COMPILER=${SPECIFIC_CXX_COMPILER} \
           && make -j4 && make install"
         if [ $? -ne 0 ] ; then
           exit 1
@@ -404,6 +402,19 @@ dep_rpm() {
         rm -fr ${HOME}/$d/hyperscan ${HOME}/$d/hyperscan.build ${HOME}/$d/boost_1_59_0 || true
       fi
     fi
+  fi
+  if [ "${UPDATE_LUAJIT}" -eq 1 ] ; then
+    rm -fr ${HOME}/$d/luajit/ ${HOME}/$d/luajit-src
+    chroot ${HOME}/$d "/usr/bin/git" clone -b v2.1 https://luajit.org/git/luajit-2.0.git /luajit-src
+    if [ $? -ne 0 ] ; then
+      exit 1
+    fi
+    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && source ${DEVTOOLSET_ENABLE} && make PREFIX=/luajit && make install PREFIX=/luajit"
+    if [ $? -ne 0 ] ; then
+      exit 1
+    fi
+    # Avoid dynamic libraries
+    rm -f ${HOME}/$d/luajit/lib/*.so
   fi
 
   chroot ${HOME}/$d rm -fr ${BUILD_DIR}
@@ -472,43 +483,41 @@ if [ $DEPS_STAGE -eq 1 ] ; then
     fi
 
     for d in $DISTRIBS_RPM ; do
-      HYPERSCAN=""
-      CMAKE="cmake"
+        HYPERSCAN=""
+        CMAKE="cmake"
+        SPECIFIC_C_COMPILER="${C_COMPILER}"
+        SPECIFIC_CXX_COMPILER="${CXX_COMPILER}"
+        DEVTOOLSET_ENABLE=""
 
-      case $d in
-        opensuse-*)
-          REAL_DEPS="$DEPS_RPM lua-devel sqlite-devel libopendkim-devel ragel gcc-c++"
-          YUM="zypper -n"
-          HYPERSCAN="yes"
-          ;;
-        fedora-25*)
-          REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel ragel gcc-c++"
-          YUM="dnf --nogpgcheck -y"
-          HYPERSCAN="yes"
-          ;;
-        fedora-24*)
-          REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel ragel gcc-c++"
-          YUM="dnf --nogpgcheck -y"
-          HYPERSCAN="yes"
-          ;;
-        fedora-21*)
-          REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel"
-          YUM="yum -y"
-          ;;
-        centos-6)
-          REAL_DEPS="$DEPS_RPM lua-devel sqlite-devel libopendkim-devel"
-          YUM="yum -y"
-          ;;
-        centos-7)
-          REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel"
-          YUM="yum -y"
-          HYPERSCAN="yes"
-          CMAKE="cmake3"
-          ;;
-        *)
-          YUM="yum -y"
-          REAL_DEPS="$DEPS_RPM sqlite-devel ${LUAJIT_DEP}" ;;
-      esac
+
+        case $d in
+          opensuse-*)
+            REAL_DEPS="$DEPS_RPM lua-devel sqlite-devel libopendkim-devel ragel gcc-c++"
+            YUM="zypper -n"
+            HYPERSCAN="yes"
+            ;;
+          fedora-25*)
+            REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel ragel gcc-c++"
+            YUM="dnf --nogpgcheck -y"
+            HYPERSCAN="yes"
+            ;;
+          centos-6)
+            HYPERSCAN="yes"
+            DEVTOOLSET_ENABLE="/opt/rh/devtoolset-6/enable"
+            REAL_DEPS="$DEPS_RPM lua-devel sqlite-devel libopendkim-devel"
+            YUM="yum -y"
+            ;;
+          centos-7)
+            HYPERSCAN="yes"
+            DEVTOOLSET_ENABLE="/opt/rh/devtoolset-7/enable"
+            CMAKE="cmake3"
+            REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel"
+            YUM="yum -y"
+            ;;
+          *)
+            YUM="yum -y"
+            REAL_DEPS="$DEPS_RPM sqlite-devel ${LUAJIT_DEP}" ;;
+        esac
 
       dep_rpm $d
 
@@ -801,6 +810,10 @@ if [ $BUILD_STAGE -eq 1 ] ; then
       for d in $DISTRIBS_RPM ; do
         HYPERSCAN=""
         CMAKE="cmake"
+        SPECIFIC_C_COMPILER="${C_COMPILER}"
+        SPECIFIC_CXX_COMPILER="${CXX_COMPILER}"
+        DEVTOOLSET_ENABLE=""
+
 
         case $d in
           opensuse-*)
@@ -821,9 +834,12 @@ if [ $BUILD_STAGE -eq 1 ] ; then
           fedora-21*)
             ;;
           centos-6)
+            HYPERSCAN="yes"
+            DEVTOOLSET_ENABLE="/opt/rh/devtoolset-6/enable"
             ;;
           centos-7)
             HYPERSCAN="yes"
+            DEVTOOLSET_ENABLE="/opt/rh/devtoolset-7/enable"
             CMAKE="cmake3"
             ;;
           *)
