@@ -64,6 +64,12 @@ lua.
 %setup -q
 
 %build
+%if 0%{?el6}
+source /opt/rh/devtoolset-6/enable
+%endif
+%if 0%{?el7}
+source /opt/rh/devtoolset-7/enable
+%endif
 @@CMAKE@@ \
 		-DCMAKE_C_OPT_FLAGS="%{optflags}" \
         -DCMAKE_INSTALL_PREFIX=%{_prefix} \
@@ -71,7 +77,8 @@ lua.
         -DMANDIR=%{_mandir} \
         -DDBDIR=%{_localstatedir}/lib/rspamd \
         -DRUNDIR=%{_localstatedir}/run/rspamd \
-        -DENABLE_JEMALLOC=ON \
+		-DENABLE_JEMALLOC=ON \
+		-DJEMALLOC_ROOT_DIR=/jemalloc \
 %if 0%{?el6}
         -DWANT_SYSTEMD_UNITS=OFF \
 %else
@@ -81,11 +88,8 @@ lua.
 %if 0%{?suse_version}
         -DCMAKE_SKIP_INSTALL_RPATH=ON \
 %endif
-%if 0%{?fedora} || 0%{?suse_version} >= 1320 || 0%{?el7}
 		-DENABLE_LUAJIT=ON \
-%else
-		-DENABLE_LUAJIT=OFF \
-%endif
+		-DLUA_ROOT=/luajit \
 		-DENABLE_HIREDIS=ON \
         -DLOGDIR=%{_localstatedir}/log/rspamd \
         -DEXAMPLESDIR=%{_datadir}/examples/rspamd \
@@ -132,7 +136,6 @@ rm -rf %{buildroot}
 %post
 #to allow easy upgrade from 0.8.1
 %{__chown} -R %{rspamd_user}:%{rspamd_group} %{rspamd_home}
-%{__chown} %{rspamd_user}:%{rspamd_group} %{rspamd_logdir}
 %if 0%{?suse_version}
 %service_add_post %{name}.service
 %endif
@@ -144,6 +147,7 @@ systemctl --no-reload preset %{name}.service >/dev/null 2>&1 || :
 %if 0%{?el6}
 /sbin/chkconfig --add %{name}
 %endif
+%{__chown} %{rspamd_user}:%{rspamd_group} %{rspamd_logdir}
 
 %preun
 %if 0%{?suse_version}
@@ -193,6 +197,7 @@ fi
 %{_bindir}/rspamc
 %{_bindir}/rspamadm
 %config(noreplace) %{rspamd_confdir}/modules.d/*
+%config(noreplace) %{rspamd_confdir}/scores.d/*
 %config(noreplace) %{rspamd_confdir}/*.inc
 %config(noreplace) %{rspamd_confdir}/*.conf
 %attr(-, _rspamd, _rspamd) %dir %{rspamd_home}
@@ -200,6 +205,7 @@ fi
 %dir %{rspamd_rulesdir}
 %dir %{rspamd_confdir}
 %dir %{rspamd_confdir}/modules.d
+%dir %{rspamd_confdir}/scores.d
 %dir %{rspamd_confdir}/local.d
 %dir %{rspamd_confdir}/override.d
 %dir %{rspamd_pluginsdir}
