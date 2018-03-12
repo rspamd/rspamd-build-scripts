@@ -235,6 +235,7 @@ get_rspamd() {
     fi
     
     if [ -d ${HOME}/patches-stable/ ] ; then
+      shopt -s nullglob
       for p in ${HOME}/patches-stable/* ; do
         echo "Applying patch $p"
         ( cd ${HOME}/rspamd && patch -p1 < $p )
@@ -440,6 +441,8 @@ if [ $DEPS_STAGE -eq 1 ] ; then
   if [ $DEBIAN -ne 0 ] ; then
     for d in $DISTRIBS_DEB ; do
       HYPERSCAN=""
+        SPECIFIC_C_COMPILER="${C_COMPILER}"
+        SPECIFIC_CXX_COMPILER="${CXX_COMPILER}"
       grep universe ${HOME}/$d/etc/apt/sources.list > /dev/null 2>&1
       if [ $? -ne 0 ] ; then
         sed -e 's/main/main universe/' ${HOME}/$d/etc/apt/sources.list > /tmp/.tt
@@ -455,6 +458,8 @@ if [ $DEPS_STAGE -eq 1 ] ; then
         ubuntu-precise) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd2-noxpm-dev" ;;
         ubuntu-xenial) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" HYPERSCAN="yes";;
         ubuntu-trusty)
+          SPECIFIC_C_COMPILER="clang-5.0"
+          SPECIFIC_CXX_COMPILER="clang++-5.0"
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev"
           HYPERSCAN="yes"
           ;;
