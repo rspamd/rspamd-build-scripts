@@ -21,6 +21,7 @@ NO_RMILTER=1
 CMAKE=cmake
 C_COMPILER=gcc
 CXX_COMPILER=g++
+NO_DELETE=0
 LOG="./rspamd_build.log"
 
 usage()
@@ -47,6 +48,7 @@ usage()
   echo "\t--no-torch: do not use torch"
   echo "\t--no-jemalloc: do not use jemalloc"
   echo "\t--no-opt: disable all optimizations"
+  echo "\t--no-delete: do not delete old files during rsync"
   echo "\t--extra-opt: enable extra optimizations"
   echo "\t--bootstrap: bootstrap the specified distros"
   echo "\t--arm <dir>: use arm deb packages from specified directory"
@@ -126,6 +128,9 @@ while [ "$1" != "" ]; do
       ;;
     --no-opt)
       NO_OPT=1
+      ;;
+    --no-delete)
+      NO_DELETE=1
       ;;
     --extra-opt)
       EXTRA_OPT=1
@@ -1070,8 +1075,10 @@ fi
 RSYNC_ARGS="-rup"
 
 if [ $DIST -eq 0 ] ; then
-  if [ $RPM -eq 1 -a $DEBIAN -eq 1 ] ; then
-    RSYNC_ARGS="${RSYNC_ARGS} --delete --delete-before"
+  if [ ${NO_DELETE} -eq 0 ] ; then
+    if [ $RPM -eq 1 -a $DEBIAN -eq 1 ] ; then
+      RSYNC_ARGS="${RSYNC_ARGS} --delete --delete-before"
+    fi
   fi
 fi
 
