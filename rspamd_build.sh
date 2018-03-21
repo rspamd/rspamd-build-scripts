@@ -17,7 +17,6 @@ UPDATE_LUAJIT=0
 NO_OPT=0
 JOBS=2
 EXTRA_OPT=0
-NO_RMILTER=1
 CMAKE=cmake
 C_COMPILER=gcc
 CXX_COMPILER=g++
@@ -41,7 +40,6 @@ usage()
   echo "\t--upload-host: use the following upload host"
   echo "\t--no-inc: do not increase version for rolling release"
   echo "\t--no-i386: do not build packages for i386"
-  echo "\t--rmilter: build rmilter packages"
   echo "\t--no-rspamd: do not build rspamd packages"
   echo "\t--no-hyperscan: do not use hyperscan"
   echo "\t--no-luajit: do not use luajit (implies --no-torch)"
@@ -106,9 +104,6 @@ while [ "$1" != "" ]; do
       ;;
     --no-i386)
       NO_I386=1
-      ;;
-    --rmilter)
-      NO_RMILTER=""
       ;;
     --no-rspamd)
       NO_RSPAMD=1
@@ -270,36 +265,6 @@ get_rspamd() {
   fi
 }
 
-get_rmilter() {
-  rm -fr ${HOME}/rmilter ${HOME}/rmilter.build
-  git clone --recursive https://github.com/vstakhov/rmilter ${HOME}/rmilter
-
-  if [ -n "${STABLE}" ] ; then
-    ( cd ${HOME}/rmilter && git checkout ${RMILTER_VER} )
-    if [ $? -ne 0 ] ; then
-      exit 1
-    fi
-  fi
-
-  ( mkdir ${HOME}/rmilter.build ; cd ${HOME}/rmilter.build ; cmake ${HOME}/rmilter ; make dist )
-  if [ $? -ne 0 ] ; then
-    exit 1
-  fi
-
-  if [ $DEBIAN -ne 0 ] ; then
-    for d in $DISTRIBS_DEB ; do
-      cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d/
-      cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d-i386/
-    done
-  fi
-  if [ $RPM -ne 0 ] ; then
-    for d in $DISTRIBS_RPM ; do
-      cp ${HOME}/rmilter.build/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d/
-      cp ${HOME}/$d/rmilter-${RMILTER_VER}.tar.xz ${HOME}/$d/${BUILD_DIR}/SOURCES
-    done
-  fi
-}
-
 
 dep_deb() {
   d=$1
@@ -328,7 +293,7 @@ dep_deb() {
         fi
         ( cd ${HOME}/$d ; tar xzf ${HOME}/boost.tar.gz )
         mkdir ${HOME}/$d/hyperscan.build
-        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; cmake \
+        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; cmake -gNinja\
           -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
           -DBOOST_ROOT=/boost_1_59_0 \
           -DCMAKE_BUILD_TYPE=Release \
@@ -338,7 +303,7 @@ dep_deb() {
           -DCMAKE_C_COMPILER=${SPECIFIC_C_COMPILER} \
           -DCMAKE_CXX_COMPILER=${SPECIFIC_CXX_COMPILER} \
           ../hyperscan && \
-          make -j2 && make install/strip"
+          ninja && ninja install/strip"
         if [ $? -ne 0 ] ; then
           exit 1
         fi
@@ -393,13 +358,13 @@ dep_rpm() {
         fi
         ( cd ${HOME}/$d ; tar xzf ${HOME}/boost.tar.gz )
         mkdir ${HOME}/$d/hyperscan.build
-        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; source ${DEVTOOLSET_ENABLE} ; ${CMAKE} \
+        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; source ${DEVTOOLSET_ENABLE} ; ${CMAKE} -GNinja \
           ../hyperscan -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
           -DBOOST_ROOT=/boost_1_59_0 \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_FLAGS=\"-fpic -fPIC -march=core2\" \
           -DCMAKE_CXX_FLAGS=\"-fPIC -fpic -march=core2\" \
-          && make -j4 && make install"
+          && ninja && ninja install"
         if [ $? -ne 0 ] ; then
           exit 1
         fi
@@ -432,7 +397,6 @@ dep_rpm() {
     ${BUILD_DIR}/SPECS \
     ${BUILD_DIR}/SRPMS
   cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}/SPECS
-  cp ${HOME}/rpm/SPECS/rmilter.spec ${HOME}/$d/${BUILD_DIR}/SPECS
   cp ${HOME}/rpm/SOURCES/* ${HOME}/$d/${BUILD_DIR}/SOURCES
 }
 
@@ -543,9 +507,6 @@ if [ $DEPS_STAGE -eq 1 ] ; then
     get_rspamd
   fi
 
-  if [ -z "${NO_RMILTER}" ] ; then
-    get_rmilter
-  fi
 fi
 
 build_rspamd_deb() {
@@ -614,49 +575,6 @@ build_rspamd_deb() {
   fi
 }
 
-build_rmilter_deb() {
-  d=$1
-  echo "******* BUILD RMILTER ${RMILTER_VER} FOR $d ********"
-
-  _id=`git -C ${HOME}/rmilter rev-parse --short HEAD`
-  _distname=`echo $d | sed -r -e 's/ubuntu-|debian-//' -e 's/-i386//'`
-  _deps_line=`echo ${REAL_DEPS} | tr ' ' ','`
-  chroot ${HOME}/$d sh -c "rm -fr rmilter-${RMILTER_VER} ; tar xvf rmilter-${RMILTER_VER}.tar.xz"
-  chroot ${HOME}/$d sh -c "cp rmilter-${RMILTER_VER}.tar.xz rmilter_${RMILTER_VER}.orig.tar.xz"
-  chroot ${HOME}/$d sh -c "sed -e \"s/Build-Depends:.*/Build-Depends: ${_deps_line}/\" \
-    -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" \
-    < rmilter-${RMILTER_VER}/debian/control > /tmp/.tt ; \
-    mv /tmp/.tt rmilter-${RMILTER_VER}/debian/control"
-  if [ -n "${STABLE}" ] ; then
-    RULES_SED="${RULES_SED} -e \"s/-DDEBIAN_BUILD=1/-DDEBIAN_BUILD=1/\""
-  else
-    RULES_SED="${RULES_SED} -e \"s/-DDEBIAN_BUILD=1/-DDEBIAN_BUILD=1 -DGIT_ID=${_id}/\""
-  fi
-  if [ -n "${STABLE}" ] ; then
-    chroot ${HOME}/$d sh -c "sed -e \"s/unstable/${_distname}/\" \
-      -e \"s/Mikhail Gusarov <dottedmag@debian.org>/Vsevolod Stakhov <vsevolod@highsecure.ru>/\" \
-      -e \"s/1.6.[0-9]*/${RMILTER_VER}-${_version}~${_distname}/\" \
-      < rmilter-${RMILTER_VER}/debian/changelog > /tmp/.tt ; \
-      mv /tmp/.tt rmilter-${RMILTER_VER}/debian/changelog"
-  else
-    chroot ${HOME}/$d sh -c "sed -e \"s/unstable/${_distname}/\" \
-      -e \"s/Mikhail Gusarov <dottedmag@debian.org>/Vsevolod Stakhov <vsevolod@highsecure.ru>/\" \
-      -e \"s/1.6.[0-9]*/${RMILTER_VER}-0~git${_version}~${_id}~${_distname}/\" \
-      < rmilter-${RMILTER_VER}/debian/changelog > /tmp/.tt ; \
-      mv /tmp/.tt rmilter-${RMILTER_VER}/debian/changelog"
-  fi
-  if [ -n "$RULES_SED" ] ; then
-    chroot ${HOME}/$d sh -c "sed ${RULES_SED} < rmilter-${RMILTER_VER}/debian/rules > /tmp/.tt ; \
-      mv /tmp/.tt rmilter-${RMILTER_VER}/debian/rules"
-  fi
-  chroot ${HOME}/$d sh -c "sed -e 's/native/quilt/' < rmilter-${RMILTER_VER}/debian/source/format > /tmp/.tt ; \
-    mv /tmp/.tt rmilter-${RMILTER_VER}/debian/source/format"
-  chroot ${HOME}/$d sh -c "cd rmilter-${RMILTER_VER} ; DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc" 2>&1 | tee -a $LOG
-  if [ $? -ne 0 ] ; then
-    exit 1
-  fi
-}
-
 build_rspamd_rpm() {
   d=$1
   _id=`git -C ${HOME}/rspamd rev-parse --short HEAD`
@@ -698,31 +616,6 @@ build_rspamd_rpm() {
     --define='BuildRoot %{_tmppath}/%{name}' \
     --define="_topdir ${BUILD_DIR}" \
     -ba ${BUILD_DIR}/SPECS/rspamd.spec 2>&1 | tee -a $LOG
-  if [ $? -ne 0 ] ; then
-    exit 1
-  fi
-}
-
-build_rmilter_rpm() {
-  d=$1
-  echo "******* BUILD RMILTER ${RMILTER_VER} FOR $d ********"
-  _id=`git -C ${HOME}/rmilter rev-parse --short HEAD`
-  cp ${HOME}/rpm/SPECS/rmilter.spec ${HOME}/$d/${BUILD_DIR}/SPECS
-  if [ -n "${STABLE}" ] ; then
-    sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RMILTER_VER}/" \
-      -e "s/^Release:[ \t]*[0-9]*$/Release: ${_version}/" \
-      < ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec > /tmp/.tt
-  else
-    sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RMILTER_VER}/" \
-      -e "s/^Release:[ \t]*[0-9]*$/Release: ${_version}.git${_id}/" \
-      < ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec > /tmp/.tt
-  fi
-  mv /tmp/.tt ${HOME}/$d/${BUILD_DIR}/SPECS/rmilter.spec
-  chroot ${HOME}/$d rpmbuild \
-    --define='jobs ${JOBS}' \
-    --define='BuildRoot %{_tmppath}/%{name}' \
-    --define="_topdir ${BUILD_DIR}" \
-    -ba ${BUILD_DIR}/SPECS/rmilter.spec 2>&1 | tee -a $LOG
   if [ $? -ne 0 ] ; then
     exit 1
   fi
@@ -863,58 +756,6 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 
   RULES_SED=""
 
-  if [ -z "${NO_RMILTER}" ] ; then
-    if [ $DEBIAN -ne 0 ] ; then
-      for d in $DISTRIBS_DEB ; do
-        case $d in
-          debian-jessie)
-            REAL_DEPS="$DEPS_DEB dh-systemd"
-            RULES_SED="-e 's/--with systemd/--with systemd --parallel/'"
-            ;;
-          debian-stretch)
-            REAL_DEPS="$DEPS_DEB dh-systemd"
-            RULES_SED="-e 's/--with systemd/--with systemd --parallel/'"
-            ;;
-          debian-sid)
-            REAL_DEPS="$DEPS_DEB dh-systemd"
-            RULES_SED="-e 's/--with systemd/--with systemd --parallel/'"
-            ;;
-          ubuntu-wily)
-            REAL_DEPS="$DEPS_DEB"
-            RULES_SED="-e 's/--with systemd/--parallel/'"
-            ;;
-          ubuntu-xenial)
-            REAL_DEPS="$DEPS_DEB dh-systemd"
-            RULES_SED="-e 's/--with systemd/--with systemd --parallel/'"
-            ;;
-          debian-wheezy)
-            REAL_DEPS="$DEPS_DEB"
-            RULES_SED="-e 's/--with systemd/--parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'"
-            ;;
-          ubuntu-*)
-            REAL_DEPS="$DEPS_DEB"
-            RULES_SED="-e 's/--with systemd/--parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF/'"
-            ;;
-          *) REAL_DEPS="$DEPS_DEB" ;;
-        esac
-
-        build_rmilter_deb $d
-        ### i386 ###
-        if [ -z "${NO_I386}" ] ; then
-          d="${d}-i386"
-          build_rmilter_deb $d
-        fi
-      done
-    fi # DEBIAN == 0
-    if [ $RPM -ne 0 ] ; then
-      for d in $DISTRIBS_RPM ; do
-        build_rmilter_rpm $d
-      done
-    fi
-  fi # NO_RSPAMD != 0
-
   # Increase version
   if [ -z "${STABLE}" -a -z "${NO_INC}" ] ; then
     echo $_version > ${HOME}/version
@@ -930,7 +771,6 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
   fi
 
   _id=`git -C ${HOME}/rspamd rev-parse --short HEAD`
-  _rmilter_id=`git -C ${HOME}/rmilter rev-parse --short HEAD`
 
   if [ $DEBIAN -ne 0 ] ; then
     rm -fr ${HOME}/repos/*
@@ -941,11 +781,9 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
       _distname=`echo $d | sed -r -e 's/ubuntu-|debian-//'`
       if [ -n "${STABLE}" ] ; then
         _pkg_ver="${RSPAMD_VER}-${_version}~${_distname}"
-        _rmilter_pkg_ver="${RMILTER_VER}-${_version}~${_distname}"
         _repo_descr="Apt repository for rspamd stable builds"
       else
         _pkg_ver="${RSPAMD_VER}-0~git${_version}~${_id}~${_distname}"
-        _rmilter_pkg_ver="${RMILTER_VER}-0~git${_version}~${_rmilter_id}~${_distname}"
         _repo_descr="Apt repository for rspamd nightly builds"
       fi
       if [ -z "${NO_I386}" ] ; then
@@ -976,14 +814,6 @@ EOD
         reprepro -b $_repodir -v --keepunreferencedfiles includedsc $_distname $d/rspamd_${_pkg_ver}.dsc
       fi
 
-      if [ -z "${NO_RMILTER}" ] ; then
-        dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.deb
-        dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter-dbg_${_rmilter_pkg_ver}*.deb
-        debsign --re-sign -k $KEY ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.changes
-        reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter_${_rmilter_pkg_ver}_amd64.deb
-        reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter-dbg_${_rmilter_pkg_ver}_amd64.deb
-        reprepro -b $_repodir -v --keepunreferencedfiles includedsc $_distname $d/rmilter_${_rmilter_pkg_ver}.dsc
-      fi
       ### i386 ###
       if [ -z "${NO_I386}" ] ; then
         d="${d}-i386"
@@ -994,13 +824,6 @@ EOD
           reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd_${_pkg_ver}_i386.deb
           reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd-dbg_${_pkg_ver}_i386.deb
         fi
-        if [ -z "${NO_RMILTER}" ] ; then
-          dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.deb
-          dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rmilter-dbg_${_rmilter_pkg_ver}*.deb
-          debsign --re-sign -k $KEY ${HOME}/$d/rmilter_${_rmilter_pkg_ver}*.changes
-          reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter_${_rmilter_pkg_ver}_i386.deb
-          reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rmilter-dbg_${_rmilter_pkg_ver}_i386.deb
-        fi
       fi
 
       if [ $ARM -ne 0 ] ; then
@@ -1010,13 +833,6 @@ EOD
           debsign --re-sign -k $KEY ${ARM}/$d/rspamd_${_pkg_ver}*.changes
           reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${ARM}/$d/rspamd_${_pkg_ver}_armhf.deb
           reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${ARM}/$d/rspamd-dbg_${_pkg_ver}_armhf.deb
-        fi
-        if [ -z "${NO_RMILTER}" ] ; then
-          dpkg-sig -k $KEY --batch=1 --sign builder ${ARM}/$d/rmilter_${_rmilter_pkg_ver}*.deb
-          dpkg-sig -k $KEY --batch=1 --sign builder ${ARM}/$d/rmilter-dbg_${_rmilter_pkg_ver}*.deb
-          debsign --re-sign -k $KEY ${ARM}/$d/rmilter_${_rmilter_pkg_ver}*.changes
-          reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${ARM}/$d/rmilter_${_rmilter_pkg_ver}_armhf.deb
-          reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${ARM}/$d/rmilter-dbg_${_rmilter_pkg_ver}_armhf.deb
         fi
       fi
 
