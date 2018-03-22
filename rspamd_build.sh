@@ -293,7 +293,7 @@ dep_deb() {
         fi
         ( cd ${HOME}/$d ; tar xzf ${HOME}/boost.tar.gz )
         mkdir ${HOME}/$d/hyperscan.build
-        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; cmake -gNinja\
+        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; cmake \
           -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
           -DBOOST_ROOT=/boost_1_59_0 \
           -DCMAKE_BUILD_TYPE=Release \
@@ -303,7 +303,7 @@ dep_deb() {
           -DCMAKE_C_COMPILER=${SPECIFIC_C_COMPILER} \
           -DCMAKE_CXX_COMPILER=${SPECIFIC_CXX_COMPILER} \
           ../hyperscan && \
-          ninja && ninja install/strip"
+          make -j4 && make install/strip"
         if [ $? -ne 0 ] ; then
           exit 1
         fi
@@ -358,13 +358,13 @@ dep_rpm() {
         fi
         ( cd ${HOME}/$d ; tar xzf ${HOME}/boost.tar.gz )
         mkdir ${HOME}/$d/hyperscan.build
-        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; source ${DEVTOOLSET_ENABLE} ; ${CMAKE} -GNinja \
+        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; source ${DEVTOOLSET_ENABLE} ; ${CMAKE}  \
           ../hyperscan -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
           -DBOOST_ROOT=/boost_1_59_0 \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_FLAGS=\"-fpic -fPIC -march=core2\" \
           -DCMAKE_CXX_FLAGS=\"-fPIC -fpic -march=core2\" \
-          && ninja && ninja install"
+          && make -j4 && make install"
         if [ $? -ne 0 ] ; then
           exit 1
         fi
@@ -565,14 +565,19 @@ build_rspamd_deb() {
   fi
   chroot ${HOME}/$d sh -c "sed -e 's/native/quilt/' < rspamd-${RSPAMD_VER}/debian/source/format > /tmp/.tt ; \
     mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/source/format"
+  rm -f ${HOME}/$d/build.stamp
   if [ ${NO_OPT} -eq 1 ] ; then
-    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no DEB_CFLAGS_SET=\"-g -O0\" dpkg-buildpackage -us -uc" 2>&1 | tee -a $LOG
+    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; (DEBUILD_LINTIAN=no DEB_CFLAGS_SET=\"-g -O0\" dpkg-buildpackage -us -uc 2>&1 && touch /build.stamp)" | tee -a $LOG
   else
-    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc" 2>&1 | tee -a $LOG
+    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; (DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc 2>&1 && touch /build.stamp)" | tee -a $LOG
   fi
-  if [ $? -ne 0 ] ; then
+  
+  if [ ! -f ${HOME}/$d/build.stamp ] ; then
+    echo "Build failed for $d"
     exit 1
   fi
+
+  rm -f ${HOME}/$d/build.stamp
 }
 
 build_rspamd_rpm() {
@@ -610,15 +615,19 @@ build_rspamd_rpm() {
   fi
 
   mv /tmp/.tt ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec
-
-  chroot ${HOME}/$d rpmbuild \
+  
+  rm -f ${HOME}/$d/build.stamp
+  (chroot ${HOME}/$d rpmbuild \
     --define='jobs ${JOBS}' \
     --define='BuildRoot %{_tmppath}/%{name}' \
     --define="_topdir ${BUILD_DIR}" \
-    -ba ${BUILD_DIR}/SPECS/rspamd.spec 2>&1 | tee -a $LOG
-  if [ $? -ne 0 ] ; then
+    -ba ${BUILD_DIR}/SPECS/rspamd.spec 2>&1 && touch ${HOME}/$d/build.stamp) | tee -a $LOG
+  if [ ! -f ${HOME}/$d/build.stamp ] ; then
+    echo "Build failed for $d"
     exit 1
   fi
+
+  rm -f ${HOME}/$d/build.stamp
 }
 
 
