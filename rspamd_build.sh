@@ -21,6 +21,7 @@ CMAKE=cmake
 C_COMPILER=gcc
 CXX_COMPILER=g++
 NO_DELETE=0
+NO_I386=1
 LOG="./rspamd_build.log"
 
 usage()
