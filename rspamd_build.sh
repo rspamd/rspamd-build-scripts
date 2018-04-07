@@ -421,15 +421,25 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 
 
       case $d in
-        debian-jessie) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" HYPERSCAN="yes";;
+        debian-jessie) 
+          SPECIFIC_C_COMPILER="clang-6.0"
+          SPECIFIC_CXX_COMPILER="clang++-6.0"
+          REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" 
+          HYPERSCAN="yes"
+          ;;
         debian-stretch) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" HYPERSCAN="yes";;
         debian-sid) REAL_DEPS="$DEPS_DEB dh-systemd build-essential ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" HYPERSCAN="yes";;
         debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev libgd2-noxpm-dev" ;;
         ubuntu-precise) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd2-noxpm-dev" ;;
-        ubuntu-xenial) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" HYPERSCAN="yes";;
+        ubuntu-xenial) 
+          SPECIFIC_C_COMPILER="clang-6.0"
+          SPECIFIC_CXX_COMPILER="clang++-6.0"
+          REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" 
+          HYPERSCAN="yes"
+          ;;
         ubuntu-trusty)
-          SPECIFIC_C_COMPILER="clang-5.0"
-          SPECIFIC_CXX_COMPILER="clang++-5.0"
+          SPECIFIC_C_COMPILER="clang-6.0"
+          SPECIFIC_CXX_COMPILER="clang++-6.0"
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev"
           HYPERSCAN="yes"
           ;;
@@ -664,6 +674,8 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+            SPECIFIC_C_COMPILER="clang-6.0"
+            SPECIFIC_CXX_COMPILER="clang++-6.0"
             ;;
           debian-stretch)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
@@ -693,10 +705,12 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+            SPECIFIC_C_COMPILER="clang-6.0"
+            SPECIFIC_CXX_COMPILER="clang++-6.0"
             ;;
           ubuntu-trusty)
-            SPECIFIC_C_COMPILER="clang-5.0"
-            SPECIFIC_CXX_COMPILER="clang++-5.0"
+            SPECIFIC_C_COMPILER="clang-6.0"
+            SPECIFIC_CXX_COMPILER="clang++-6.0"
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--parallel/' \
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
