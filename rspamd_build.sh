@@ -437,6 +437,10 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" 
           HYPERSCAN="yes"
           ;;
+        ubuntu-bionic) 
+          REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev" 
+          HYPERSCAN="yes"
+          ;;
         ubuntu-trusty)
           SPECIFIC_C_COMPILER="clang-6.0"
           SPECIFIC_CXX_COMPILER="clang++-6.0"
@@ -707,6 +711,11 @@ if [ $BUILD_STAGE -eq 1 ] ; then
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
             SPECIFIC_C_COMPILER="clang-6.0"
             SPECIFIC_CXX_COMPILER="clang++-6.0"
+            ;;
+          ubuntu-bionic)
+            REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
+            RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
+              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
             ;;
           ubuntu-trusty)
             SPECIFIC_C_COMPILER="clang-6.0"
