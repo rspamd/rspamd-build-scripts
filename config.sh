@@ -10,7 +10,7 @@ export DISTRIBS_DEB="ubuntu-trusty \
   debian-jessie \
   debian-stretch \
   debian-sid"
-export DISTRIBS_RPM="centos-6 centos-7"
+export DISTRIBS_RPM="centos-6 centos-7 fedora-25"
 export DEPS_RPM="glib2-devel libevent-devel openssl-devel pcre-devel perl \
   hiredis-devel cmake rpm-build gmime-devel gcc make sendmail-devel bison \
   flex file-devel fann-devel git rsync perl-Digest-MD5 libmemcached-devel ragel perl-Digest-MD5 gd-devel libicu-devel jemalloc-devel"

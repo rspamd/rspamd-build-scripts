@@ -359,7 +359,7 @@ dep_rpm() {
         fi
         ( cd ${HOME}/$d ; tar xzf ${HOME}/boost.tar.gz )
         mkdir ${HOME}/$d/hyperscan.build
-        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; source ${DEVTOOLSET_ENABLE} ; ${CMAKE}  \
+        chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; if [ -n \"${DEVTOOLSET_ENABLE}\" ] ; then source ${DEVTOOLSET_ENABLE}  ; fi ; ${CMAKE}  \
           ../hyperscan -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
           -DBOOST_ROOT=/boost_1_59_0 \
           -DCMAKE_BUILD_TYPE=Release \
@@ -381,7 +381,7 @@ dep_rpm() {
     if [ $? -ne 0 ] ; then
       exit 1
     fi
-    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && source ${DEVTOOLSET_ENABLE} && make PREFIX=/luajit && make install PREFIX=/luajit"
+    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && if [ -n \"${DEVTOOLSET_ENABLE}\" ] ; then source ${DEVTOOLSET_ENABLE} ; fi && make PREFIX=/luajit && make install PREFIX=/luajit"
     if [ $? -ne 0 ] ; then
       exit 1
     fi
