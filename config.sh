@@ -16,8 +16,8 @@ export DEPS_RPM="glib2-devel libevent-devel openssl-devel pcre-devel perl \
   flex file-devel fann-devel git rsync perl-Digest-MD5 libmemcached-devel ragel perl-Digest-MD5 gd-devel libicu-devel jemalloc-devel"
 
 export MAIN_ARCH="x86_64"
-export RSPAMD_VER_UNSTABLE="1.7.6"
-export RSPAMD_VER_STABLE="1.7.5"
+export RSPAMD_VER_UNSTABLE="1.7.7"
+export RSPAMD_VER_STABLE="1.7.6"
 export RMILTER_VER_UNSTABLE="2.0.0"
 export RMILTER_VER_STABLE="1.10.0"
 # RPM stupidity
