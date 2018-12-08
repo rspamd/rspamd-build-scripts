@@ -292,6 +292,10 @@ dep_deb() {
         if [ $? -ne 0 ] ; then
           exit 1
         fi
+        curl 'ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.41.tar.gz' > ${HOME}/$d/pcre-8.41.tar.gz
+        echo "add_subdirectory(chimera)" >> ${HOME}/$d/hyperscan/CMakeLists.txt
+        ( cd ${HOME}/$d/hyperscan/ ; tar xzf ${HOME}/$d/pcre-8.41.tar.gz )
+        chroot ${HOME}/$d "sed" -i -e 's/CMAKE_POLICY/#CMAKE_POLICY/' hyperscan/pcre-8.41/CMakeLists.txt  
         ( cd ${HOME}/$d ; tar xzf ${HOME}/boost.tar.gz )
         mkdir ${HOME}/$d/hyperscan.build
         chroot ${HOME}/$d "/bin/sh" -c "cd /hyperscan.build ; cmake \
@@ -303,7 +307,8 @@ dep_deb() {
           -DCMAKE_CXX_FLAGS=\"-fPIC -fpic\" \
           -DCMAKE_C_COMPILER=${SPECIFIC_C_COMPILER} \
           -DCMAKE_CXX_COMPILER=${SPECIFIC_CXX_COMPILER} \
-          ../hyperscan && \
+          -DPCRE_SUPPORT_LIBBZ2=OFF \
+          /hyperscan && \
           make -j4 && make install/strip"
         if [ $? -ne 0 ] ; then
           exit 1

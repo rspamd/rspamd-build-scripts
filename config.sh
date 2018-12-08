@@ -3,7 +3,7 @@
 export DEPS_DEB="fakeroot make ca-certificates less git vim devscripts debhelper \
   dpkg-dev cmake libevent-dev libglib2.0-dev libpcre3-dev \
   libssl-dev libcurl4-openssl-dev libsqlite3-dev perl \
-  bison flex libmagic-dev git libjemalloc-dev ragel libicu-dev"
+  bison flex libmagic-dev git libjemalloc-dev ragel libicu-dev curl"
 export DISTRIBS_DEB="ubuntu-trusty \
   ubuntu-xenial \
   ubuntu-bionic \
@@ -14,7 +14,7 @@ export DISTRIBS_DEB="ubuntu-trusty \
 export DISTRIBS_RPM="centos-6 centos-7 fedora-25"
 export DEPS_RPM="glib2-devel libevent-devel openssl-devel pcre-devel perl \
   cmake rpm-build gcc make sendmail-devel bison \
-  flex file-devel fann-devel git rsync ragel perl-Digest-MD5 gd-devel libicu-devel jemalloc-devel libunwind-devel"
+  flex file-devel fann-devel git rsync ragel perl-Digest-MD5 gd-devel libicu-devel jemalloc-devel libunwind-devel curl"
 
 export MAIN_ARCH="x86_64"
 export RSPAMD_VER_UNSTABLE="1.8.4"
