@@ -325,7 +325,7 @@ dep_deb() {
     if [ $? -ne 0 ] ; then
       exit 1
     fi
-    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && make CC=${SPECIFIC_C_COMPILER} PREFIX=/luajit && make install PREFIX=/luajit"
+    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && make clean && make CC="${SPECIFIC_C_COMPILER} -fPIC" BUILDMODE=static PREFIX=/luajit && make install PREFIX=/luajit"
     if [ $? -ne 0 ] ; then
       exit 1
     fi
@@ -386,7 +386,7 @@ dep_rpm() {
     if [ $? -ne 0 ] ; then
       exit 1
     fi
-    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && if [ -n \"${DEVTOOLSET_ENABLE}\" ] ; then source ${DEVTOOLSET_ENABLE} ; fi && make PREFIX=/luajit && make install PREFIX=/luajit"
+    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && if [ -n \"${DEVTOOLSET_ENABLE}\" ] ; then source ${DEVTOOLSET_ENABLE} ; fi && make clean && make CC=\"gcc -fPIC\" PREFIX=/luajit && make install PREFIX=/luajit"
     if [ $? -ne 0 ] ; then
       exit 1
     fi
@@ -718,6 +718,8 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             SPECIFIC_CXX_COMPILER="clang++-6.0"
             ;;
           ubuntu-bionic)
+            SPECIFIC_C_COMPILER="clang-6.0"
+            SPECIFIC_CXX_COMPILER="clang++-6.0"
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"

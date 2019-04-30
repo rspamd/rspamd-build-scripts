@@ -23,7 +23,7 @@ License:        BSD2c
 URL:            https://rspamd.com
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}
 BuildRequires:  glib2-devel,libevent-devel,openssl-devel,pcre-devel
-BuildRequires:  cmake,gmime-devel,file-devel,perl,ragel
+BuildRequires:  cmake,gmime-devel,file-devel,perl,ragel,libunwind-devel
 %if 0%{?suse_version} || 0%{?el7} || 0%{?fedora}
 BuildRequires:  systemd
 Requires(pre):  systemd
@@ -49,8 +49,10 @@ Requires(post): chkconfig
 Requires(preun): chkconfig, initscripts
 Requires(postun): initscripts
 Source1:        %{name}.init
-%endif
 Source2:        %{name}.logrotate
+%else
+Source2:        %{name}.logrotate.systemd
+%endif
 
 Source0:        https://rspamd.com/downloads/%{name}-%{version}.tar.xz
 Source3:	80-rspamd.preset
@@ -72,37 +74,40 @@ source /opt/rh/devtoolset-7/enable
 %endif
 @@CMAKE@@ \
 		-DCMAKE_C_OPT_FLAGS="%{optflags}" \
-        -DCMAKE_INSTALL_PREFIX=%{_prefix} \
-        -DCONFDIR=%{_sysconfdir}/rspamd \
-        -DMANDIR=%{_mandir} \
-        -DDBDIR=%{_localstatedir}/lib/rspamd \
-        -DRUNDIR=%{_localstatedir}/run/rspamd \
+    -DCMAKE_INSTALL_PREFIX=%{_prefix} \
+    -DCONFDIR=%{_sysconfdir}/rspamd \
+    -DMANDIR=%{_mandir} \
+    -DDBDIR=%{_localstatedir}/lib/rspamd \
+    -DRUNDIR=%{_localstatedir}/run/rspamd \
 		-DENABLE_JEMALLOC=ON \
 		-DJEMALLOC_ROOT_DIR=/jemalloc \
 %if 0%{?el6}
-        -DWANT_SYSTEMD_UNITS=OFF \
+    -DWANT_SYSTEMD_UNITS=OFF \
+    -DDISABLE_PTHREAD_MUTEX=1 \
 %else
-        -DWANT_SYSTEMD_UNITS=ON \
-        -DSYSTEMDDIR=%{_unitdir} \
+    -DWANT_SYSTEMD_UNITS=ON \
+    -DSYSTEMDDIR=%{_unitdir} \
 %endif
 %if 0%{?suse_version}
-        -DCMAKE_SKIP_INSTALL_RPATH=ON \
+    -DCMAKE_SKIP_INSTALL_RPATH=ON \
 %endif
 		-DENABLE_LUAJIT=ON \
 		-DLUA_ROOT=/luajit \
 		-DENABLE_HIREDIS=ON \
-        -DLOGDIR=%{_localstatedir}/log/rspamd \
-        -DEXAMPLESDIR=%{_datadir}/examples/rspamd \
-        -DPLUGINSDIR=%{_datadir}/rspamd \
-        -DLIBDIR=%{_libdir}/rspamd/ \
-        -DINCLUDEDIR=%{_includedir} \
-        -DNO_SHARED=ON \
-        -DDEBIAN_BUILD=1 \
-        -DRSPAMD_GROUP=%{rspamd_group} \
-        -DRSPAMD_USER=%{rspamd_user} \
+    -DLOGDIR=%{_localstatedir}/log/rspamd \
+    -DEXAMPLESDIR=%{_datadir}/examples/rspamd \
+    -DSHAREDIR=%{_datadir}/rspamd \
+    -DLIBDIR=%{_libdir}/rspamd/ \
+    -DINCLUDEDIR=%{_includedir} \
+    -DNO_SHARED=ON \
+    -DDEBIAN_BUILD=1 \
+    -DRSPAMD_GROUP=%{rspamd_group} \
+    -DRSPAMD_USER=%{rspamd_user} \
+		-DENABLE_LIBUNWIND=ON \
 		@@EXTRA@@
 
 %{__make} %{?jobs:-j%jobs}
+
 
 %install
 %{__make} install DESTDIR=%{buildroot} INSTALLDIRS=vendor
