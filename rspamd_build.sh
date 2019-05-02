@@ -471,7 +471,11 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 
   if [ $RPM -ne 0 ] ; then
     if [ -z "${NO_LUAJIT}" ] ; then
-      LUAJIT_DEP="luajit-devel"
+      if [ $BUNDLED_LUAJIT -ne 0 ] ; then
+        LUAJIT_DEP=""
+      else
+        LUAJIT_DEP="luajit-devel"
+      fi
     else
       LUAJIT_DEP="lua-devel"
     fi
@@ -670,7 +674,11 @@ if [ $BUILD_STAGE -eq 1 ] ; then
     if [ $DEBIAN -ne 0 ] ; then
 
       if [ -z "${NO_LUAJIT}" ] ; then
-        LUAJIT_DEP="libluajit-5.1-dev"
+        if [ $BUNDLED_LUAJIT -ne 0 ] ; then
+          LUAJIT_DEP=""
+        else
+          LUAJIT_DEP="libluajit-5.1-dev"
+        fi
       else
         LUAJIT_DEP="liblua5.1-dev"
       fi
