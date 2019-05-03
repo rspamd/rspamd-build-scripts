@@ -275,6 +275,9 @@ dep_deb() {
   rm -f ${HOME}/$d/*.changes
   rm -f ${HOME}/$d/*.dsc
   rm -f ${HOME}/$d/*.build
+  rm -f ${HOME}/$d/*.orig.tar.*z
+  rm -f ${HOME}/$d/*.debian.tar.*z
+  rm -f ${HOME}/$d/*.buildinfo
 
   chroot ${HOME}/$d "/usr/bin/apt-get" update
   chroot ${HOME}/$d "/usr/bin/apt-get" upgrade -y
@@ -325,8 +328,14 @@ dep_deb() {
     if [ $? -ne 0 ] ; then
       exit 1
     fi
-    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && make clean && make CC="${SPECIFIC_C_COMPILER} -fPIC" BUILDMODE=static PREFIX=/luajit && make install PREFIX=/luajit"
-    if [ $? -ne 0 ] ; then
+    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && make clean && make CC=\"${SPECIFIC_C_COMPILER} -fPIC\" BUILDMODE=static PREFIX=/luajit && echo yes > .build_done"
+    if [ ! -f${HOME}/$d/luajit-src/.build_done ] ; then
+      echo "luajit build failure"
+      exit 1
+    fi
+    chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && make CC=\"${SPECIFIC_C_COMPILER} -fPIC\" PREFIX=/luajit BUILDMODE=static install && echo yes > .install_done"
+    if [ ! -f${HOME}/$d/luajit-src/.install_done ] ; then
+      echo "luajit install failure"
       exit 1
     fi
     # Avoid dynamic libraries
@@ -342,6 +351,9 @@ dep_rpm() {
   rm -f ${HOME}/$d/*.changes
   rm -f ${HOME}/$d/*.dsc
   rm -f ${HOME}/$d/*.build
+  rm -f ${HOME}/$d/*.orig.tar.*z
+  rm -f ${HOME}/$d/*.debian.tar.*z
+  rm -f ${HOME}/$d/*.buildinfo
 
   chroot ${HOME}/$d ${YUM} update
   chroot ${HOME}/$d ${YUM} install ${REAL_DEPS}
@@ -408,7 +420,11 @@ dep_rpm() {
 
 if [ $DEPS_STAGE -eq 1 ] ; then
   if [ -z "${NO_LUAJIT}" ] ; then
-    LUAJIT_DEP="libluajit-5.1-dev"
+    if [ $BUNDLED_LUAJIT -ne 0 ] ; then
+      LUAJIT_DEP=""
+    else
+      LUAJIT_DEP="libluajit-5.1-dev"
+    fi
   else
     LUAJIT_DEP="liblua5.1-dev"
   fi
@@ -609,7 +625,7 @@ build_rspamd_rpm() {
   _id=`git -C ${HOME}/rspamd rev-parse --short HEAD`
   echo "******* BUILD RSPAMD ${RSPAMD_VER} FOR $d ********"
   cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}/SPECS
-  RPM_EXTRA="-DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON"
+  RPM_EXTRA="-DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF"
   if [ ${NO_OPT} -eq 1 ] ; then
     RPM_EXTRA="${RPM_EXTRA} -DENABLE_FULL_DEBUG=ON"
   fi
@@ -690,38 +706,24 @@ if [ $BUILD_STAGE -eq 1 ] ; then
           debian-jessie)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
             SPECIFIC_C_COMPILER="clang-6.0"
             SPECIFIC_CXX_COMPILER="clang++-6.0"
             ;;
           debian-stretch)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
             ;;
           debian-sid)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
-            ;;
-          debian-wheezy)
-            REAL_DEPS="$DEPS_DEB liblua5.1-dev"
-            RULES_SED="-e 's/--with systemd/--parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'" ;;
-          ubuntu-precise)
-            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
-            RULES_SED="-e 's/--with systemd/--parallel/' -e \
-              's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_FANN=ON/'"
-            ;;
-          ubuntu-wily)
-            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
-            RULES_SED="-e 's/--with systemd/--parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
             ;;
           ubuntu-xenial)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
             SPECIFIC_C_COMPILER="clang-6.0"
             SPECIFIC_CXX_COMPILER="clang++-6.0"
             ;;
@@ -730,19 +732,19 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             SPECIFIC_CXX_COMPILER="clang++-6.0"
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
             ;;
           ubuntu-trusty)
             SPECIFIC_C_COMPILER="clang-6.0"
             SPECIFIC_CXX_COMPILER="clang++-6.0"
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
             ;;
           ubuntu-*)
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=ON/'"
+              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
             ;;
           *) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}" ;;
         esac
