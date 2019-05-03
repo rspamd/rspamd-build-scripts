@@ -329,12 +329,12 @@ dep_deb() {
       exit 1
     fi
     chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && make clean && make CC=\"${SPECIFIC_C_COMPILER} -fPIC\" BUILDMODE=static PREFIX=/luajit && echo yes > .build_done"
-    if [ ! -f${HOME}/$d/luajit-src/.build_done ] ; then
+    if [ ! -f ${HOME}/$d/luajit-src/.build_done ] ; then
       echo "luajit build failure"
       exit 1
     fi
     chroot ${HOME}/$d "/bin/sh" -c "cd /luajit-src && make CC=\"${SPECIFIC_C_COMPILER} -fPIC\" PREFIX=/luajit BUILDMODE=static install && echo yes > .install_done"
-    if [ ! -f${HOME}/$d/luajit-src/.install_done ] ; then
+    if [ ! -f ${HOME}/$d/luajit-src/.install_done ] ; then
       echo "luajit install failure"
       exit 1
     fi
