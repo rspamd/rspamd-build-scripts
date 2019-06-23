@@ -519,6 +519,7 @@ if [ $DEPS_STAGE -eq 1 ] ; then
             HYPERSCAN="yes"
             DEVTOOLSET_ENABLE="/opt/rh/devtoolset-6/enable"
             REAL_DEPS="$DEPS_RPM lua-devel sqlite-devel libopendkim-devel"
+            CMAKE="cmake3"
             YUM="yum -y"
             ;;
           centos-7)
