@@ -788,6 +788,7 @@ if [ $BUILD_STAGE -eq 1 ] ; then
           fedora-21*)
             ;;
           centos-6)
+            CMAKE="cmake3"
             HYPERSCAN="yes"
             DEVTOOLSET_ENABLE="/opt/rh/devtoolset-6/enable"
             ;;
@@ -902,9 +903,6 @@ EOD
     done
     for d in $DISTRIBS_RPM ; do
       cp ${HOME}/${d}/${BUILD_DIR}/RPMS/${ARCH}/*.rpm ${HOME}/rpm/$d/${ARCH}
-      if [ "$d" = "centos-6" ] ; then
-        cp ${HOME}/${d}/gmime*.rpm ${HOME}/rpm/$d/${ARCH}
-      fi
       for p in ${HOME}/rpm/$d/${ARCH}/*.rpm ; do
         ./rpm_sign.expect $p
       done
