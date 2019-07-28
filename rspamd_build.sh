@@ -450,6 +450,12 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           ;;
         debian-stretch) REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" HYPERSCAN="yes";;
         debian-sid) REAL_DEPS="$DEPS_DEB dh-systemd build-essential ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" HYPERSCAN="yes";;
+        debian-buster)
+          SPECIFIC_C_COMPILER="clang-9"
+          SPECIFIC_CXX_COMPILER="clang++-9"
+          REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" 
+          HYPERSCAN="yes"
+          ;;
         debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev libgd2-noxpm-dev libunwind7-dev" ;;
         ubuntu-precise) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd2-noxpm-dev libunwind8-dev" ;;
         ubuntu-xenial) 
@@ -720,6 +726,13 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
+            ;;
+          debian-buster)
+            REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
+            RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
+              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
+            SPECIFIC_C_COMPILER="clang-9"
+            SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
           ubuntu-xenial)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"

@@ -8,7 +8,8 @@ export DISTRIBS_DEB="ubuntu-xenial \
   ubuntu-bionic \
   debian-jessie \
   debian-stretch \
-  debian-sid"
+  debian-sid
+  debian-buster"
 export DISTRIBS_RPM="centos-6 centos-7"
 export DEPS_RPM="glib2-devel openssl-devel pcre-devel perl \
   cmake rpm-build gcc make sendmail-devel bison \
