@@ -8,9 +8,9 @@ export DISTRIBS_DEB="ubuntu-xenial \
   ubuntu-bionic \
   debian-jessie \
   debian-stretch \
-  debian-buster \
-  debian-sid"
-export DISTRIBS_RPM="centos-6 centos-7"
+  debian-sid
+  debian-buster"
+export DISTRIBS_RPM="centos-7"
 export DEPS_RPM="glib2-devel openssl-devel pcre-devel perl \
   cmake rpm-build gcc make sendmail-devel bison \
   flex file-devel git rsync ragel perl-Digest-MD5  libicu-devel libunwind-devel curl"
@@ -26,7 +26,7 @@ export BUILD_DIR="/build7558b18c49c3aede6aa20ecb0513b9eb2b39ce7db0c739ec00636900
 if [ -n "${STABLE}" ] ; then
   export RSPAMD_VER="${RSPAMD_VER_STABLE}"
   export RMILTER_VER="${RMILTER_VER_STABLE}"
-  export STABLE_VER="1"
+  export STABLE_VER="2"
 else
   export RSPAMD_VER="${RSPAMD_VER_UNSTABLE}"
   export RMILTER_VER="${RMILTER_VER_UNSTABLE}"
