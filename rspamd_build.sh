@@ -524,15 +524,15 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           centos-6)
             HYPERSCAN="yes"
             DEVTOOLSET_ENABLE="/opt/rh/devtoolset-6/enable"
-            REAL_DEPS="$DEPS_RPM lua-devel sqlite-devel libopendkim-devel"
+            REAL_DEPS="$DEPS_RPM lua-devel sqlite-devel libopendkim-devel devtoolset-6"
             CMAKE="cmake3"
             YUM="yum -y"
             ;;
           centos-7)
             HYPERSCAN="yes"
-            DEVTOOLSET_ENABLE="/opt/rh/devtoolset-7/enable"
+            DEVTOOLSET_ENABLE="/opt/rh/devtoolset-8/enable"
             CMAKE="cmake3"
-            REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel"
+            REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel libopendkim-devel devtoolset-8"
             YUM="yum -y"
             ;;
           *)
@@ -807,7 +807,7 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             ;;
           centos-7)
             HYPERSCAN="yes"
-            DEVTOOLSET_ENABLE="/opt/rh/devtoolset-7/enable"
+            DEVTOOLSET_ENABLE="/opt/rh/devtoolset-8/enable"
             CMAKE="cmake3"
             ;;
           *)
