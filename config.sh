@@ -3,17 +3,17 @@
 export DEPS_DEB="fakeroot make ca-certificates less git vim devscripts debhelper \
   dpkg-dev cmake libevent-dev libglib2.0-dev libpcre3-dev \
   libssl-dev libcurl4-openssl-dev libsqlite3-dev perl \
-  bison flex libmagic-dev git ragel libicu-dev curl"
+  libmagic-dev git ragel libicu-dev curl"
 export DISTRIBS_DEB="ubuntu-xenial \
   ubuntu-bionic \
   debian-jessie \
   debian-stretch \
   debian-sid
   debian-buster"
-export DISTRIBS_RPM="centos-7"
+export DISTRIBS_RPM="centos-7 centos-8"
 export DEPS_RPM="glib2-devel openssl-devel pcre-devel perl \
-  cmake rpm-build gcc make sendmail-devel bison \
-  flex file-devel git rsync ragel perl-Digest-MD5  libicu-devel libunwind-devel curl"
+  cmake rpm-build gcc make \
+  file-devel git rsync perl-Digest-MD5  libicu-devel libunwind-devel curl"
 
 export MAIN_ARCH="x86_64"
 export RSPAMD_VER_UNSTABLE="2.0"

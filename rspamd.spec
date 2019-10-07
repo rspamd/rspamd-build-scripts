@@ -23,11 +23,11 @@ License:        BSD2c
 URL:            https://rspamd.com
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}
 BuildRequires:  glib2-devel,openssl-devel,pcre-devel
-BuildRequires:  cmake,file-devel,perl,ragel,libunwind-devel
+BuildRequires:  cmake,file-devel,perl,libunwind-devel
 %if 0%{?el6}
 BuildRequires:  cmake3
 %endif
-%if 0%{?suse_version} || 0%{?el7} || 0%{?fedora}
+%if 0%{?suse_version} || 0%{?el7} || 0%{?fedora} || 0%{?el8}
 BuildRequires:  systemd
 Requires(pre):  systemd
 Requires(post): systemd
@@ -42,9 +42,9 @@ BuildRequires:  sqlite-devel
 Requires(pre):  shadow-utils
 %endif
 %if 0%{?fedora} || 0%{?suse_version} >= 1320
-BuildRequires:  luajit-devel
+#BuildRequires:  luajit-devel
 %else
-BuildRequires:  lua-devel
+#BuildRequires:  lua-devel
 %endif
 %if 0%{?el6}
 Requires:       logrotate
@@ -147,7 +147,7 @@ rm -rf %{buildroot}
 %if 0%{?suse_version}
 %service_add_post %{name}.service
 %endif
-%if 0%{?fedora} || 0%{?el7}
+%if 0%{?fedora} || 0%{?el7} || 0%{?el8}
 #Macro is not used as we want to do this on upgrade
 #%systemd_post %{name}.service
 systemctl --no-reload preset %{name}.service >/dev/null 2>&1 || :
@@ -161,7 +161,7 @@ systemctl --no-reload preset %{name}.service >/dev/null 2>&1 || :
 %if 0%{?suse_version}
 %service_del_preun %{name}.service
 %endif
-%if 0%{?fedora} || 0%{?el7}
+%if 0%{?fedora} || 0%{?el7} || 0%{?el8}
 %systemd_preun %{name}.service
 %endif
 %if 0%{?el6}
@@ -175,7 +175,7 @@ fi
 %if 0%{?suse_version}
 %service_del_postun %{name}.service
 %endif
-%if 0%{?fedora} || 0%{?el7}
+%if 0%{?fedora} || 0%{?el7} || 0%{?el8}
 %systemd_postun_with_restart %{name}.service
 %endif
 %if 0%{?el6}
@@ -187,7 +187,7 @@ fi
 
 %files
 %defattr(-,root,root,-)
-%if 0%{?suse_version} || 0%{?fedora} || 0%{?el7}
+%if 0%{?suse_version} || 0%{?fedora} || 0%{?el7} || 0%{?el8}
 %{_unitdir}/%{name}.service
 %{_presetdir}/80-rspamd.preset
 %endif
@@ -205,6 +205,7 @@ fi
 %{_bindir}/rspamc
 %{_bindir}/rspamadm
 %config(noreplace) %{rspamd_confdir}/modules.d/*
+%config(noreplace) %{rspamd_confdir}/maps.d/*
 %config(noreplace) %{rspamd_confdir}/scores.d/*
 %config(noreplace) %{rspamd_confdir}/*.inc
 %config(noreplace) %{rspamd_confdir}/*.conf
@@ -213,6 +214,7 @@ fi
 %dir %{rspamd_rulesdir}
 %dir %{rspamd_confdir}
 %dir %{rspamd_confdir}/modules.d
+%dir %{rspamd_confdir}/maps.d
 %dir %{rspamd_confdir}/scores.d
 %dir %{rspamd_confdir}/local.d
 %dir %{rspamd_confdir}/override.d
