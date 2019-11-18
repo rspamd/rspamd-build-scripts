@@ -14,14 +14,13 @@ DIST=0
 UPDATE_HYPERSCAN=0
 BUNDLED_LUAJIT=0
 UPDATE_LUAJIT=0
-NO_OPT=0
 JOBS=2
-EXTRA_OPT=0
 CMAKE=cmake
 C_COMPILER=gcc
 CXX_COMPILER=g++
 NO_DELETE=0
 NO_I386=1
+NO_ASAN=0
 LOG="./rspamd_build.log"
 
 usage()
@@ -46,7 +45,7 @@ usage()
   echo "\t--no-luajit: do not use luajit (implies --no-torch)"
   echo "\t--no-torch: do not use torch"
   echo "\t--no-jemalloc: do not use jemalloc"
-  echo "\t--no-opt: disable all optimizations"
+  echo "\t--no-asan: disable asan builds"
   echo "\t--no-delete: do not delete old files during rsync"
   echo "\t--extra-opt: enable extra optimizations"
   echo "\t--bootstrap: bootstrap the specified distros"
@@ -122,14 +121,11 @@ while [ "$1" != "" ]; do
     --no-jemalloc)
       NO_JEMALLOC=1
       ;;
-    --no-opt)
-      NO_OPT=1
+    --no-asan)
+      NO_ASAN=1
       ;;
     --no-delete)
       NO_DELETE=1
-      ;;
-    --extra-opt)
-      EXTRA_OPT=1
       ;;
     --upload-host)
       UPLOAD_HOST="${VALUE}"
@@ -260,8 +256,11 @@ get_rspamd() {
   fi
   if [ $RPM -ne 0 ] ; then
     for d in $DISTRIBS_RPM ; do
+      mkdir -p ${HOME}/$d/${BUILD_DIR} || true
+      mkdir -p ${HOME}/$d/${BUILD_DIR}-asan || true
       cp ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/
       cp ${HOME}/$d/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/${BUILD_DIR}/SOURCES
+      cp ${HOME}/$d/rspamd-${RSPAMD_VER}.tar.xz ${HOME}/$d/${BUILD_DIR}-asan/SOURCES
     done
   fi
 }
@@ -270,6 +269,7 @@ get_rspamd() {
 dep_deb() {
   d=$1
   #rm -fr ${HOME}/$d/opt/hyperscan
+  chroot ${HOME}/$d bash -c '[[ $(stat -c %d%D /proc) != $(stat -c %d%D /) ]] || mount -t proc none /proc'
   rm -f ${HOME}/$d/*.deb
   rm -f ${HOME}/$d/*.debian.tar.gz
   rm -f ${HOME}/$d/*.changes
@@ -345,6 +345,7 @@ dep_deb() {
 
 dep_rpm() {
   d=$1
+  chroot ${HOME}/$d bash -c '[[ $(stat -c %d%D /proc) != $(stat -c %d%D /) ]] || mount -t proc none /proc'
   #rm -fr ${HOME}/$d/opt/hyperscan
   rm -f ${HOME}/$d/*.deb
   rm -f ${HOME}/$d/*.debian.tar.gz
@@ -380,9 +381,10 @@ dep_rpm() {
           ../hyperscan -DCMAKE_INSTALL_PREFIX=/opt/hyperscan \
           -DBOOST_ROOT=/boost_1_59_0 \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_C_FLAGS=\"-fpic -fPIC -march=core2\" \
-          -DCMAKE_CXX_FLAGS=\"-fPIC -fpic -march=core2\" \
-          && make -j4 && make install"
+          -DFAT_RUNTIME=ON \
+          -DCMAKE_C_FLAGS=\"-fpic -fPIC\" \
+          -DCMAKE_CXX_FLAGS=\"-fPIC -fpic\" \
+          && make -j4 && make install/strip"
         if [ $? -ne 0 ] ; then
           exit 1
         fi
@@ -416,6 +418,16 @@ dep_rpm() {
     ${BUILD_DIR}/SRPMS
   cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}/SPECS
   cp ${HOME}/rpm/SOURCES/* ${HOME}/$d/${BUILD_DIR}/SOURCES
+  chroot ${HOME}/$d rm -fr ${BUILD_DIR}-asan
+  chroot ${HOME}/$d mkdir ${BUILD_DIR}-asan \
+    ${BUILD_DIR}-asan/RPMS \
+    ${BUILD_DIR}-asan/RPMS/i386 \
+    ${BUILD_DIR}-asan/RPMS/${MAIN_ARCH} \
+    ${BUILD_DIR}-asan/SOURCES \
+    ${BUILD_DIR}-asan/SPECS \
+    ${BUILD_DIR}-asan/SRPMS
+  cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}-asan/SPECS
+  cp ${HOME}/rpm/SOURCES/* ${HOME}/$d/${BUILD_DIR}-asan/SOURCES
 }
 
 if [ $DEPS_STAGE -eq 1 ] ; then
@@ -601,42 +613,35 @@ build_rspamd_deb() {
   if [ -n "${NO_JEMALLOC}" ] ; then
     RULES_SED="${RULES_SED} -e \"s/-DENABLE_JEMALLOC=ON/-DENABLE_JEMALLOC=OFF/\""
   fi
-  if [ ${NO_OPT} -eq 1 ] ; then
-    RULES_SED="${RULES_SED} -e \"s/-DENABLE_FULL_DEBUG=OFF/-DENABLE_FULL_DEBUG=ON/\""
-  fi
-  if [ ${EXTRA_OPT} -eq 1 ] ; then
-    if [ $_distname != 'wheezy' ] ; then
-      # Wheezy is shit
-      RULES_SED="${RULES_SED} -e \"s/-DENABLE_OPTIMIZATION=OFF/-DENABLE_OPTIMIZATION=ON/\""
-    fi
-  fi
-  chroot ${HOME}/$d sh -c "rm -fr rspamd-${RSPAMD_VER} ; tar xvf rspamd-${RSPAMD_VER}.tar.xz"
-  chroot ${HOME}/$d sh -c "cp rspamd-${RSPAMD_VER}.tar.xz rspamd_${RSPAMD_VER}.orig.tar.xz"
-  chroot ${HOME}/$d sh -c "sed -e \"s/Build-Depends:.*/Build-Depends: ${_deps_line}/\" -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/control"
+  DEB_BUILD_PREFIX="/release"
+  chroot ${HOME}/$d sh -c "rm -fr rspamd-${RSPAMD_VER} ${DEB_BUILD_PREFIX} ; mkdir ${DEB_BUILD_PREFIX} ; cd ${DEB_BUILD_PREFIX} ; tar xvf /rspamd-${RSPAMD_VER}.tar.xz"
+  chroot ${HOME}/$d sh -c "cp rspamd-${RSPAMD_VER}.tar.xz ${DEB_BUILD_PREFIX}/rspamd_${RSPAMD_VER}.orig.tar.xz"
+  
+  # Build normal
+  chroot ${HOME}/$d sh -c "sed -e \"s/Build-Depends:.*/Build-Depends: ${_deps_line}/\" -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
+  chroot ${HOME}/$d sh -c "sed -e \"s/-DCMAKE_BUILD_TYPE=ReleaseWithDebInfo/-DCMAKE_BUILD_TYPE=Release/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
   if [ -n "${STABLE}" ] ; then
     chroot ${HOME}/$d sh -c "sed -e \"s/unstable/${_distname}/\" \
       -e \"s/Mikhail Gusarov <dottedmag@debian.org>/Vsevolod Stakhov <vsevolod@highsecure.ru>/\" \
-      -e \"s/1.0.2/${RSPAMD_VER}-${_version}~${_distname}/\" < rspamd-${RSPAMD_VER}/debian/changelog > /tmp/.tt ; \
-      mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/changelog"
+      -e \"s/1.0.2/${RSPAMD_VER}-${_version}~${_distname}/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/changelog > /tmp/.tt ; \
+      mv /tmp/.tt ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/changelog"
   else
-    chroot ${HOME}/$d sh -c "sed -e \"s/unstable/${_distname}/\" \
+    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/unstable/${_distname}/\" \
       -e \"s/Mikhail Gusarov <dottedmag@debian.org>/Vsevolod Stakhov <vsevolod@highsecure.ru>/\" \
       -e \"s/1.0.2/${RSPAMD_VER}-0~git${_version}~${_id}~${_distname}/\" \
       < rspamd-${RSPAMD_VER}/debian/changelog > /tmp/.tt ; \
       mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/changelog"
   fi
   if [ -n "$RULES_SED" ] ; then
-    chroot ${HOME}/$d sh -c "sed ${RULES_SED} < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; \
+    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed ${RULES_SED} < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; \
       mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
   fi
-  chroot ${HOME}/$d sh -c "sed -e 's/native/quilt/' < rspamd-${RSPAMD_VER}/debian/source/format > /tmp/.tt ; \
+  chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed ${RULES_SED} < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; \
+    mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
+  chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e 's/native/quilt/' < rspamd-${RSPAMD_VER}/debian/source/format > /tmp/.tt ; \
     mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/source/format"
   rm -f ${HOME}/$d/build.stamp
-  if [ ${NO_OPT} -eq 1 ] ; then
-    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; (DEBUILD_LINTIAN=no DEB_CFLAGS_SET=\"-g -O0\" dpkg-buildpackage -us -uc 2>&1 && touch /build.stamp)" | tee -a $LOG
-  else
-    chroot ${HOME}/$d sh -c "cd rspamd-${RSPAMD_VER} ; (DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc 2>&1 && touch /build.stamp)" | tee -a $LOG
-  fi
+  chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER} ; (DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc 2>&1 && touch /build.stamp)" | tee -a $LOG
   
   if [ ! -f ${HOME}/$d/build.stamp ] ; then
     echo "Build failed for $d"
@@ -644,6 +649,44 @@ build_rspamd_deb() {
   fi
 
   rm -f ${HOME}/$d/build.stamp
+  # Build ASAN
+  if [ ${NO_ASAN} -ne 1 ] ; then
+    DEB_BUILD_PREFIX="/asan"
+    chroot ${HOME}/$d sh -c "rm -fr rspamd-${RSPAMD_VER} ${DEB_BUILD_PREFIX} ; mkdir ${DEB_BUILD_PREFIX} ; cd ${DEB_BUILD_PREFIX} ; tar xvf /rspamd-${RSPAMD_VER}.tar.xz"
+    chroot ${HOME}/$d sh -c "cp rspamd-${RSPAMD_VER}.tar.xz ${DEB_BUILD_PREFIX}/rspamd_${RSPAMD_VER}.orig.tar.xz"
+    
+    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/Build-Depends:.*/Build-Depends: ${_deps_line}/\" -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/control"
+    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/-DCMAKE_BUILD_TYPE=ReleaseWithDebInfo/-DCMAKE_BUILD_TYPE=Debug -DSANITIZE=address/\" < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
+    if [ -n "${STABLE}" ] ; then
+      chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/unstable/${_distname}/\" \
+        -e \"s/Mikhail Gusarov <dottedmag@debian.org>/Vsevolod Stakhov <vsevolod@highsecure.ru>/\" \
+        -e \"s/1.0.2/${RSPAMD_VER}-${_version}~${_distname}/\" < rspamd-${RSPAMD_VER}/debian/changelog > /tmp/.tt ; \
+        mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/changelog"
+    else
+      chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/unstable/${_distname}/\" \
+        -e \"s/Mikhail Gusarov <dottedmag@debian.org>/Vsevolod Stakhov <vsevolod@highsecure.ru>/\" \
+        -e \"s/1.0.2/${RSPAMD_VER}-0~git${_version}~${_id}~${_distname}/\" \
+        < rspamd-${RSPAMD_VER}/debian/changelog > /tmp/.tt ; \
+        mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/changelog"
+    fi
+    if [ -n "$RULES_SED" ] ; then
+      chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed ${RULES_SED} < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; \
+        mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
+    fi
+    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed ${RULES_SED} < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; \
+      mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
+    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e 's/native/quilt/' < rspamd-${RSPAMD_VER}/debian/source/format > /tmp/.tt ; \
+      mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/source/format"
+    rm -f ${HOME}/$d/build.stamp
+    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER} ; (DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc 2>&1 && touch /build.stamp)" | tee -a $LOG
+    
+    if [ ! -f ${HOME}/$d/build.stamp ] ; then
+      echo "ASAN build failed for $d"
+      exit 1
+    fi
+
+    rm -f ${HOME}/$d/build.stamp
+  fi
 }
 
 build_rspamd_rpm() {
@@ -652,16 +695,10 @@ build_rspamd_rpm() {
   echo "******* BUILD RSPAMD ${RSPAMD_VER} FOR $d ********"
   cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}/SPECS
   RPM_EXTRA="-DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF"
-  if [ ${NO_OPT} -eq 1 ] ; then
-    RPM_EXTRA="${RPM_EXTRA} -DENABLE_FULL_DEBUG=ON"
-  fi
   if [ ${NO_TORCH} -eq 1 ] ; then
     RPM_EXTRA="${RPM_EXTRA} -DENABLE_TORCH=OFF"
   else
     RPM_EXTRA="${RPM_EXTRA} -DENABLE_TORCH=ON"
-  fi
-  if [ ${EXTRA_OPT} -eq 1 ] ; then
-    RPM_EXTRA="${RPM_EXTRA} -DENABLE_OPTIMIZATION=ON"
   fi
   if [ -n "${HYPERSCAN}" ] ; then
     RPM_EXTRA="${RPM_EXTRA} -DENABLE_HYPERSCAN=ON"
@@ -669,13 +706,13 @@ build_rspamd_rpm() {
   if [ -n "${STABLE}" ] ; then
     sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
       -e "s/^Release:[\t ]*[0-9]*$/Release: ${_version}/" \
-      -e "s/@@CMAKE@@/${CMAKE}/" \
+      -e "s/@@CMAKE@@/${CMAKE} -DCMAKE_BUILD_TYPE=Release/" \
       -e "s/@@EXTRA@@/${RPM_EXTRA}/" \
       < ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
   else
     sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
       -e "s/^Release:[ \t]*[0-9]*$/Release: ${_version}.git${_id}/" \
-      -e "s/@@CMAKE@@/${CMAKE}/" \
+      -e "s/@@CMAKE@@/${CMAKE} -DCMAKE_BUILD_TYPE=Release/" \
       -e "s/@@EXTRA@@/${RPM_EXTRA}/" \
       < ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
   fi
@@ -694,6 +731,41 @@ build_rspamd_rpm() {
   fi
 
   rm -f ${HOME}/$d/build.stamp
+
+  if [ ${NO_ASAN} -ne 1 ] ; then
+    OLD_BUILD_DIR=${BUILD_DIR}
+    BUILD_DIR="${BUILD_DIR}-asan"
+    cp ${HOME}/rpm/SPECS/rspamd.spec ${HOME}/$d/${BUILD_DIR}/SPECS
+    if [ -n "${STABLE}" ] ; then
+      sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
+        -e "s/^Release:[\t ]*[0-9]*$/Release: ${_version}/" \
+        -e "s/@@CMAKE@@/${CMAKE} -DCMAKE_BUILD_TYPE=Debug -DSANITIZE=address/" \
+        -e "s/@@EXTRA@@/${RPM_EXTRA}/" \
+        < ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
+    else
+      sed -e "s/^Version:[ \t]*[0-9.]*/Version: ${RSPAMD_VER}/" \
+        -e "s/^Release:[ \t]*[0-9]*$/Release: ${_version}.git${_id}/" \
+        -e "s/@@CMAKE@@/${CMAKE}  -DCMAKE_BUILD_TYPE=Debug -DSANITIZE=address/" \
+        -e "s/@@EXTRA@@/${RPM_EXTRA}/" \
+        < ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec > /tmp/.tt
+    fi
+
+    mv /tmp/.tt ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec
+    
+    rm -f ${HOME}/$d/build.stamp
+    (chroot ${HOME}/$d rpmbuild \
+      --define='jobs ${JOBS}' \
+      --define='BuildRoot %{_tmppath}/%{name}' \
+      --define="_topdir ${BUILD_DIR}" \
+      -ba ${BUILD_DIR}/SPECS/rspamd.spec 2>&1 && touch ${HOME}/$d/build.stamp) | tee -a $LOG
+    if [ ! -f ${HOME}/$d/build.stamp ] ; then
+      echo "ASAN Build failed for $d"
+      exit 1
+    fi
+
+    rm -f ${HOME}/$d/build.stamp
+    BUILD_DIR="${OLD_BUILD_DIR}"
+  fi
 }
 
 
@@ -869,6 +941,9 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
     rm -fr ${HOME}/repos/*
     gpg --armor --output ${HOME}/repos/gpg.key --export $KEY
     mkdir ${HOME}/repos/conf || true
+    rm -fr ${HOME}/repos-asan/*
+    gpg --armor --output ${HOME}/repos-asan/gpg.key --export $KEY
+    mkdir ${HOME}/repos-asan/conf || true
 
     for d in $DISTRIBS_DEB ; do
       _distname=`echo $d | sed -r -e 's/ubuntu-|debian-//'`
@@ -898,49 +973,53 @@ Description: ${_repo_descr}
 SignWith: ${KEY}
 
 EOD
-      if [ -z "${NO_RSPAMD}" ] ; then
-        dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd_${_pkg_ver}*.deb
-        dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd-dbg_${_pkg_ver}*.deb
-        debsign --re-sign -k $KEY ${HOME}/$d/rspamd_${_pkg_ver}*.changes
-        reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd_${_pkg_ver}_amd64.deb
-        reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd-dbg_${_pkg_ver}_amd64.deb
-        reprepro -b $_repodir -v --keepunreferencedfiles includedsc $_distname $d/rspamd_${_pkg_ver}.dsc
-      fi
-
-      ### i386 ###
-      if [ -z "${NO_I386}" ] ; then
-        d="${d}-i386"
-        if [ -z "${NO_RSPAMD}" ] ; then
-          dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd_${_pkg_ver}*.deb
-          dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/rspamd-dbg_${_pkg_ver}*.deb
-          debsign --re-sign -k $KEY ${HOME}/$d/rspamd_${_pkg_ver}*.changes
-          reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd_${_pkg_ver}_i386.deb
-          reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/rspamd-dbg_${_pkg_ver}_i386.deb
-        fi
-      fi
-
-      if [ $ARM -ne 0 ] ; then
-        if [ -z "${NO_RSPAMD}" ] ; then
-          dpkg-sig -k $KEY --batch=1 --sign builder ${ARM}/$d/rspamd_${_pkg_ver}*.deb
-          dpkg-sig -k $KEY --batch=1 --sign builder ${ARM}/$d/rspamd-dbg_${_pkg_ver}*.deb
-          debsign --re-sign -k $KEY ${ARM}/$d/rspamd_${_pkg_ver}*.changes
-          reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${ARM}/$d/rspamd_${_pkg_ver}_armhf.deb
-          reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${ARM}/$d/rspamd-dbg_${_pkg_ver}_armhf.deb
-        fi
-      fi
+      dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/release/rspamd_${_pkg_ver}*.deb
+      dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/release/rspamd-dbg_${_pkg_ver}*.deb
+      debsign --re-sign -k $KEY ${HOME}/$d/release/rspamd_${_pkg_ver}*.changes
+      reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/release/rspamd_${_pkg_ver}_amd64.deb
+      reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/release/rspamd-dbg_${_pkg_ver}_amd64.deb
+      reprepro -b $_repodir -v --keepunreferencedfiles includedsc $_distname $d/release/rspamd_${_pkg_ver}.dsc
 
       gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
         mv $_repodir/dists/$_distname/Release.sig $_repodir/dists/$_distname/Release.gpg
+
+      if [ ${NO_ASAN} -ne 1 ] ; then
+        _repodir=${HOME}/repos-asan/
+        cat >> $_repodir/conf/distributions <<EOD
+Origin: Rspamd
+Label: Rspamd
+Codename: ${_distname}
+Architectures: ${ARCHS}
+Components: main
+Description: ${_repo_descr} ASAN builds
+SignWith: ${KEY}
+
+EOD
+        dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/asan/rspamd_${_pkg_ver}*.deb
+        dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/asan/rspamd-dbg_${_pkg_ver}*.deb
+        debsign --re-sign -k $KEY ${HOME}/$d/asan/rspamd_${_pkg_ver}*.changes
+        reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/asan/rspamd_${_pkg_ver}_amd64.deb
+        reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/asan/rspamd-dbg_${_pkg_ver}_amd64.deb
+        reprepro -b $_repodir -v --keepunreferencedfiles includedsc $_distname $d/asan/rspamd_${_pkg_ver}.dsc
+
+        gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
+          mv $_repodir/dists/$_distname/Release.sig $_repodir/dists/$_distname/Release.gpg
+      fi # No asan
     done
   fi # DEBIAN == 0
 
   if [ $RPM -ne 0 ] ; then
     rm -f ${HOME}/rpm/gpg.key || true
     ARCH="${MAIN_ARCH}"
+    mkdir -p ${HOME}/rpm/ || true
+    mkdir -p ${HOME}/rpm-asan/ || true
     gpg --armor --output ${HOME}/rpm/gpg.key --export $KEY
+    gpg --armor --output ${HOME}/rpm-asan/gpg.key --export $KEY
     for d in $DISTRIBS_RPM_FULL ; do
       rm -fr ${HOME}/rpm/$d/ || true
+      rm -fr ${HOME}/rpm-asan/$d/ || true
       mkdir -p ${HOME}/rpm/$d/${ARCH} || true
+      mkdir -p ${HOME}/rpm-asan/$d/${ARCH} || true
     done
     for d in $DISTRIBS_RPM ; do
       cp ${HOME}/${d}/${BUILD_DIR}/RPMS/${ARCH}/*.rpm ${HOME}/rpm/$d/${ARCH}
@@ -952,6 +1031,17 @@ EOD
       gpg --default-key ${KEY} --detach-sign --armor \
         ${HOME}/rpm/$d/${ARCH}/repodata/repomd.xml
 
+      if [ ${NO_ASAN} -ne 1 ] ; then
+        cp ${HOME}/${d}/${BUILD_DIR}-asan/RPMS/${ARCH}/*.rpm ${HOME}/rpm-asan/$d/${ARCH}
+        for p in ${HOME}/rpm-asan/$d/${ARCH}/*.rpm ; do
+          ./rpm_sign.expect $p
+        done
+        (cd ${HOME}/rpm-asan/$d/${ARCH} && createrepo --compress-type gz . )
+
+        gpg --default-key ${KEY} --detach-sign --armor \
+          ${HOME}/rpm-asan/$d/${ARCH}/repodata/repomd.xml
+      fi
+
       if [ -n "${STABLE}" ] ; then
         cat <<EOD > ${HOME}/rpm/$d/rspamd.repo
 [rspamd]
@@ -962,11 +1052,29 @@ gpgcheck=1
 repo_gpgcheck=1
 gpgkey=http://rspamd.com/rpm/gpg.key
 EOD
+        cat <<EOD > ${HOME}/rpm-asan/$d/rspamd.repo
+[rspamd]
+name=Rspamd stable repository (asan enabled)
+baseurl=http://rspamd.com/rpm-stable-asan/$d/${ARCH}/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=http://rspamd.com/rpm/gpg.key
+EOD
       else
         cat <<EOD > ${HOME}/rpm/$d/rspamd-experimental.repo
 [rspamd-experimental]
 name=Rspamd experimental repository
 baseurl=http://rspamd.com/rpm/$d/${ARCH}/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=http://rspamd.com/rpm/gpg.key
+EOD
+        cat <<EOD > ${HOME}/rpm-asan/$d/rspamd-experimental.repo
+[rspamd-experimental]
+name=Rspamd experimental repository (asan enabled)
+baseurl=http://rspamd.com/rpm-asan/$d/${ARCH}/
 enabled=1
 gpgcheck=1
 repo_gpgcheck=1
@@ -998,9 +1106,17 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
     if [ -n "${STABLE}" ] ; then
       rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" ${RSYNC_ARGS} \
         ${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_STABLE}
+      if [ ${NO_ASAN} -ne 1 ] ; then
+        rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" ${RSYNC_ARGS} \
+          ${HOME}/repos-asan/* ${UPLOAD_HOST}:${TARGET_DEB_STABLE}-asan
+      fi
     else
       rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" ${RSYNC_ARGS} \
         ${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_UNSTABLE}
+      if [ ${NO_ASAN} -ne 1 ] ; then
+        rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" ${RSYNC_ARGS} \
+          ${HOME}/repos-asan/* ${UPLOAD_HOST}:${TARGET_DEB_UNSTABLE}-asan
+      fi
     fi
   fi
 
@@ -1009,9 +1125,17 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
       if [ -n "${STABLE}" ] ; then
         rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
           ${HOME}/rpm/$d/* ${UPLOAD_HOST}:${TARGET_RPM_STABLE}/$d/
+        if [ ${NO_ASAN} -ne 1 ] ; then
+          rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
+            ${HOME}/rpm-asan/$d/* ${UPLOAD_HOST}:${TARGET_RPM_STABLE}-asan/$d/
+        fi
       else
         rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
           ${HOME}/rpm/$d/* ${UPLOAD_HOST}:${TARGET_RPM_UNSTABLE}/$d/
+        if [ ${NO_ASAN} -ne 1 ] ; then
+          rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
+            ${HOME}/rpm-asan/$d/* ${UPLOAD_HOST}:${TARGET_RPM_UNSTABLE}-asan/$d/
+        fi
       fi
     done
   fi

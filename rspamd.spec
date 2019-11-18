@@ -73,8 +73,9 @@ lua.
 source /opt/rh/devtoolset-6/enable
 %endif
 %if 0%{?el7}
-source /opt/rh/devtoolset-7/enable
+source /opt/rh/devtoolset-8/enable
 %endif
+export ASAN_OPTIONS=detect_leaks=0
 @@CMAKE@@ \
 		-DCMAKE_C_OPT_FLAGS="%{optflags}" \
     -DCMAKE_INSTALL_PREFIX=%{_prefix} \
@@ -107,7 +108,7 @@ source /opt/rh/devtoolset-7/enable
     -DRSPAMD_GROUP=%{rspamd_group} \
     -DRSPAMD_USER=%{rspamd_user} \
 		-DENABLE_LIBUNWIND=ON \
-		@@EXTRA@@
+		@@EXTRA@@ 
 
 %{__make} %{?jobs:-j%jobs}
 
