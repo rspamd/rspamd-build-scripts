@@ -28,7 +28,7 @@ else
   export RSPAMD_VER="${RSPAMD_VER_UNSTABLE}"
 fi
 
-export KEY="3EF4A6C1"
+export KEY="3FA347D5E599BE4595CA2576FFA232EDBF21E25E"
 export TARGET_DEB_STABLE="rspamd.com/apt-stable"
 export TARGET_DEB_UNSTABLE="rspamd.com/apt"
 export TARGET_RPM_STABLE="rspamd.com/rpm-stable"

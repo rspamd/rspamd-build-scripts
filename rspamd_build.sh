@@ -681,8 +681,7 @@ build_rspamd_deb() {
     chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER} ; (DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc 2>&1 && touch /build.stamp)" | tee -a $LOG
     
     if [ ! -f ${HOME}/$d/build.stamp ] ; then
-      echo "ASAN build failed for $d"
-      exit 1
+      echo "ASAN build failed for $d, ignore..."
     fi
 
     rm -f ${HOME}/$d/build.stamp
@@ -819,15 +818,15 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
-            SPECIFIC_C_COMPILER="clang-9"
-            SPECIFIC_CXX_COMPILER="clang++-9"
+            #SPECIFIC_C_COMPILER="clang-9"
+            #SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
           debian-buster)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
-            SPECIFIC_C_COMPILER="clang-9"
-            SPECIFIC_CXX_COMPILER="clang++-9"
+            #SPECIFIC_C_COMPILER="clang-9"
+            #SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
           ubuntu-xenial)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
@@ -837,8 +836,8 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
           ubuntu-bionic)
-            SPECIFIC_C_COMPILER="clang-9"
-            SPECIFIC_CXX_COMPILER="clang++-9"
+            #SPECIFIC_C_COMPILER="clang-9"
+            #SPECIFIC_CXX_COMPILER="clang++-9"
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
@@ -1010,6 +1009,7 @@ EOD
 
   if [ $RPM -ne 0 ] ; then
     rm -f ${HOME}/rpm/gpg.key || true
+    rm -f ${HOME}/rpm-asan/gpg.key || true
     ARCH="${MAIN_ARCH}"
     mkdir -p ${HOME}/rpm/ || true
     mkdir -p ${HOME}/rpm-asan/ || true
