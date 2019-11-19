@@ -759,7 +759,6 @@ build_rspamd_rpm() {
       -ba ${BUILD_DIR}/SPECS/rspamd.spec 2>&1 && touch ${HOME}/$d/build.stamp) | tee -a $LOG
     if [ ! -f ${HOME}/$d/build.stamp ] ; then
       echo "ASAN Build failed for $d"
-      exit 1
     fi
 
     rm -f ${HOME}/$d/build.stamp
