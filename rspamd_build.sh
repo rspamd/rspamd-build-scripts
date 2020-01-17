@@ -637,8 +637,6 @@ build_rspamd_deb() {
     chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed ${RULES_SED} < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; \
       mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
   fi
-  chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed ${RULES_SED} < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; \
-    mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
   chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e 's/native/quilt/' < rspamd-${RSPAMD_VER}/debian/source/format > /tmp/.tt ; \
     mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/source/format"
   rm -f ${HOME}/$d/build.stamp
