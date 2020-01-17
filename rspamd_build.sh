@@ -295,7 +295,8 @@ dep_deb() {
         if [ $? -ne 0 ] ; then
           exit 1
         fi
-        curl 'ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.41.tar.gz' > ${HOME}/$d/pcre-8.41.tar.gz
+        curl -sLo ${HOME}/$d/pcre-8.41.tar.gz https://ftp.pcre.org/pub/pcre/pcre-8.41.tar.gz
+        ( cd ${HOME}/$d; sha256sum -c <<<"244838e1f1d14f7e2fa7681b857b3a8566b74215f28133f14a8f5e59241b682c  pcre-8.41.tar.gz" ) || exit 1
         echo "add_subdirectory(chimera)" >> ${HOME}/$d/hyperscan/CMakeLists.txt
         ( cd ${HOME}/$d/hyperscan/ ; tar xzf ${HOME}/$d/pcre-8.41.tar.gz )
         chroot ${HOME}/$d "sed" -i -e 's/CMAKE_POLICY/#CMAKE_POLICY/' hyperscan/pcre-8.41/CMakeLists.txt  
