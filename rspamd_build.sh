@@ -454,6 +454,7 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 
 
       case $d in
+        debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev libgd2-noxpm-dev libunwind7-dev" ;;
         debian-jessie) 
           SPECIFIC_C_COMPILER="clang-8"
           SPECIFIC_CXX_COMPILER="clang++-8"
@@ -466,20 +467,25 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
           ;;
-        debian-sid) 
-          SPECIFIC_C_COMPILER="clang-9"
-          SPECIFIC_CXX_COMPILER="clang++-9"
-          REAL_DEPS="$DEPS_DEB dh-systemd build-essential ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" 
-          HYPERSCAN="yes"
-          ;;
         debian-buster)
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
           REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" 
           HYPERSCAN="yes"
           ;;
-        debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev libgd2-noxpm-dev libunwind7-dev" ;;
+        debian-sid) 
+          SPECIFIC_C_COMPILER="clang-9"
+          SPECIFIC_CXX_COMPILER="clang++-9"
+          REAL_DEPS="$DEPS_DEB dh-systemd build-essential ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" 
+          HYPERSCAN="yes"
+          ;;
         ubuntu-precise) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd2-noxpm-dev libunwind8-dev" ;;
+        ubuntu-trusty)
+          SPECIFIC_C_COMPILER="clang-6.0"
+          SPECIFIC_CXX_COMPILER="clang++-6.0"
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev libunwind8-dev"
+          HYPERSCAN="yes"
+          ;;
         ubuntu-xenial) 
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
@@ -490,12 +496,6 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
           REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" 
-          HYPERSCAN="yes"
-          ;;
-        ubuntu-trusty)
-          SPECIFIC_C_COMPILER="clang-6.0"
-          SPECIFIC_CXX_COMPILER="clang++-6.0"
-          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev libunwind8-dev"
           HYPERSCAN="yes"
           ;;
         ubuntu-*)
