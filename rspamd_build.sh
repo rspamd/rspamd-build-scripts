@@ -243,7 +243,8 @@ get_rspamd() {
     fi
   fi
 
-  ( mkdir ${HOME}/rspamd.build ; cd ${HOME}/rspamd.build ; cmake ${HOME}/rspamd ; make dist )
+  mkdir ${HOME}/rspamd.build
+  ( cd ${HOME}/rspamd; ./dist.sh ${HOME}/rspamd.build/rspamd-${RSPAMD_VER}.tar.xz )
   if [ $? -ne 0 ] ; then
     exit 1
   fi
