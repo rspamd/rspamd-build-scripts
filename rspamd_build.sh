@@ -614,6 +614,10 @@ build_rspamd_deb() {
     # Fix dependencies for Debian before stretch, Ubuntu before xenial-backports
     chroot ${HOME}/$d sh -c "sed -e \"s/debhelper (>= 10),/debhelper (>= 9), dh-systemd,/\" -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
   fi
+  if [[ " ${REAL_DEPS} " != *" luajit-5.1-dev "* ]]; then
+    # Use bundled luajit package, disable distro package.
+    chroot ${HOME}/$d sh -c "sed -e \"/^ *luajit-5.1-dev/d\" -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
+  fi
   chroot ${HOME}/$d sh -c "sed -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
   chroot ${HOME}/$d sh -c "sed -e \"s/-DCMAKE_BUILD_TYPE=ReleaseWithDebInfo/-DCMAKE_BUILD_TYPE=Release/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
   if [ -n "${STABLE}" ] ; then
@@ -652,6 +656,10 @@ build_rspamd_deb() {
     if [[ " ${REAL_DEPS} " == *" dh-systemd "* ]]; then
       # Fix dependencies for Debian before stretch, Ubuntu before xenial-backports
       chroot ${HOME}/$d sh -c "sed -e \"s/debhelper (>= 10),/debhelper (>= 9), dh-systemd,/\" -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
+    fi
+    if [[ " ${REAL_DEPS} " != *" luajit-5.1-dev "* ]]; then
+      # Use bundled luajit package, disable distro package.
+      chroot ${HOME}/$d sh -c "sed -e \"/^ *luajit-5.1-dev/d\" -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
     fi
     chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/control"
     chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/-DCMAKE_BUILD_TYPE=ReleaseWithDebInfo/-DCMAKE_BUILD_TYPE=Debug -DSANITIZE=address/\" < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
