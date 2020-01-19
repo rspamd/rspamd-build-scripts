@@ -3,7 +3,7 @@
 export DEPS_DEB="fakeroot make ca-certificates less vim devscripts debhelper \
   dpkg-dev cmake libevent-dev libglib2.0-dev libpcre3-dev \
   libssl-dev libcurl4-openssl-dev libsqlite3-dev perl \
-  libmagic-dev git ragel libicu-dev curl"
+  libmagic-dev git ragel libicu-dev curl libunwind-dev"
 export DISTRIBS_DEB="ubuntu-xenial \
   ubuntu-bionic \
   debian-jessie \

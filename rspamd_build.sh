@@ -455,15 +455,14 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 
 
       case $d in
-        debian-wheezy) REAL_DEPS="$DEPS_DEB liblua5.1-dev libgd2-noxpm-dev libunwind7-dev" ;;
-        debian-jessie) 
+        debian-jessie)
           SPECIFIC_C_COMPILER="clang-8"
           SPECIFIC_CXX_COMPILER="clang++-8"
-          REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" 
+          REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
           HYPERSCAN="yes"
           ;;
-        debian-stretch) 
-          REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" 
+        debian-stretch)
+          REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
           HYPERSCAN="yes"
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
@@ -471,36 +470,29 @@ if [ $DEPS_STAGE -eq 1 ] ; then
         debian-buster)
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
-          REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" 
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
           HYPERSCAN="yes"
           ;;
-        debian-sid) 
+        debian-sid)
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
-          REAL_DEPS="$DEPS_DEB dh-systemd build-essential ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" 
+          REAL_DEPS="$DEPS_DEB build-essential ${LUAJIT_DEP}"
           HYPERSCAN="yes"
           ;;
-        ubuntu-precise) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd2-noxpm-dev libunwind8-dev" ;;
-        ubuntu-trusty)
-          SPECIFIC_C_COMPILER="clang-6.0"
-          SPECIFIC_CXX_COMPILER="clang++-6.0"
-          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev libunwind8-dev"
-          HYPERSCAN="yes"
-          ;;
-        ubuntu-xenial) 
+        ubuntu-xenial)
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
-          REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" 
+          REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
           HYPERSCAN="yes"
           ;;
-        ubuntu-bionic) 
+        ubuntu-bionic)
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
-          REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP} libgd-dev libblas-dev liblapack-dev libunwind-dev" 
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
           HYPERSCAN="yes"
           ;;
         ubuntu-*)
-          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libgd-dev libopenblas-dev liblapack-dev libunwind-dev"
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
           HYPERSCAN="yes"
           ;;
         *) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}" HYPERSCAN="yes" ;;
@@ -595,7 +587,6 @@ build_rspamd_deb() {
 
   _id=`git -C ${HOME}/rspamd rev-parse --short HEAD`
   _distname=`echo $d | sed -r -e 's/ubuntu-|debian-//' -e 's/-i386//'`
-  _deps_line=`echo ${REAL_DEPS} | tr ' ' ','`
   if [ -n "${STABLE}" ] ; then
     RULES_SED="${RULES_SED} -e \"s/-DDEBIAN_BUILD=1/-DDEBIAN_BUILD=1 -DCMAKE_C_COMPILER=${SPECIFIC_C_COMPILER} -DCMAKE_CXX_COMPILER=${SPECIFIC_CXX_COMPILER}/\""
   else
@@ -619,7 +610,11 @@ build_rspamd_deb() {
   chroot ${HOME}/$d sh -c "cp rspamd-${RSPAMD_VER}.tar.xz ${DEB_BUILD_PREFIX}/rspamd_${RSPAMD_VER}.orig.tar.xz"
   
   # Build normal
-  chroot ${HOME}/$d sh -c "sed -e \"s/Build-Depends:.*/Build-Depends: ${_deps_line}/\" -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
+  if [[ " ${REAL_DEPS} " == *" dh-systemd "* ]]; then
+    # Fix dependencies for Debian before stretch, Ubuntu before xenial-backports
+    chroot ${HOME}/$d sh -c "sed -e \"s/debhelper (>= 10),/debhelper (>= 9), dh-systemd,/\" -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
+  fi
+  chroot ${HOME}/$d sh -c "sed -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
   chroot ${HOME}/$d sh -c "sed -e \"s/-DCMAKE_BUILD_TYPE=ReleaseWithDebInfo/-DCMAKE_BUILD_TYPE=Release/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
   if [ -n "${STABLE}" ] ; then
     chroot ${HOME}/$d sh -c "sed -e \"s/unstable/${_distname}/\" \
@@ -653,8 +648,12 @@ build_rspamd_deb() {
     DEB_BUILD_PREFIX="/asan"
     chroot ${HOME}/$d sh -c "rm -fr rspamd-${RSPAMD_VER} ${DEB_BUILD_PREFIX} ; mkdir ${DEB_BUILD_PREFIX} ; cd ${DEB_BUILD_PREFIX} ; tar xvf /rspamd-${RSPAMD_VER}.tar.xz"
     chroot ${HOME}/$d sh -c "cp rspamd-${RSPAMD_VER}.tar.xz ${DEB_BUILD_PREFIX}/rspamd_${RSPAMD_VER}.orig.tar.xz"
-    
-    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/Build-Depends:.*/Build-Depends: ${_deps_line}/\" -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/control"
+
+    if [[ " ${REAL_DEPS} " == *" dh-systemd "* ]]; then
+      # Fix dependencies for Debian before stretch, Ubuntu before xenial-backports
+      chroot ${HOME}/$d sh -c "sed -e \"s/debhelper (>= 10),/debhelper (>= 9), dh-systemd,/\" -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
+    fi
+    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/control"
     chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/-DCMAKE_BUILD_TYPE=ReleaseWithDebInfo/-DCMAKE_BUILD_TYPE=Debug -DSANITIZE=address/\" < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
     if [ -n "${STABLE}" ] ; then
       chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/unstable/${_distname}/\" \
@@ -813,14 +812,14 @@ if [ $BUILD_STAGE -eq 1 ] ; then
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
             ;;
           debian-sid)
-            REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
+            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
             #SPECIFIC_C_COMPILER="clang-9"
             #SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
           debian-buster)
-            REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
+            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
             #SPECIFIC_C_COMPILER="clang-9"
@@ -836,16 +835,9 @@ if [ $BUILD_STAGE -eq 1 ] ; then
           ubuntu-bionic)
             #SPECIFIC_C_COMPILER="clang-9"
             #SPECIFIC_CXX_COMPILER="clang++-9"
-            REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
+            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
             RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
               -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
-            ;;
-          ubuntu-trusty)
-            SPECIFIC_C_COMPILER="clang-6.0"
-            SPECIFIC_CXX_COMPILER="clang++-6.0"
-            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
-            RULES_SED="-e 's/--with systemd/--parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
             ;;
           ubuntu-*)
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
