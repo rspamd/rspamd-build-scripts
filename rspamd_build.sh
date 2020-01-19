@@ -282,7 +282,7 @@ dep_deb() {
   chroot ${HOME}/$d "/usr/bin/apt-get" update
   chroot ${HOME}/$d "/usr/bin/apt-get" upgrade -y
   chroot ${HOME}/$d "/usr/bin/apt-get" install -y --no-install-recommends ${REAL_DEPS}
-  if [ -n "${HYPERSCAN}" -a -z "${NO_HYPERSCAN}" ] ; then
+  if [ "${HYPERSCAN}" = "bundled" -a -z "${NO_HYPERSCAN}" ] ; then
     echo $d | grep 'i386' > /dev/null
     if [ $? -ne 0 ] ; then
       if [ ${UPDATE_HYPERSCAN} -ne 0 ] ; then
@@ -459,43 +459,42 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           SPECIFIC_C_COMPILER="clang-8"
           SPECIFIC_CXX_COMPILER="clang++-8"
           REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
-          HYPERSCAN="yes"
+          HYPERSCAN="bundled"
           ;;
         debian-stretch)
           REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
-          HYPERSCAN="yes"
+          HYPERSCAN="bundled"
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
           ;;
         debian-buster)
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
-          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
         debian-sid)
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
-          REAL_DEPS="$DEPS_DEB build-essential ${LUAJIT_DEP}"
+          REAL_DEPS="$DEPS_DEB build-essential ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
         ubuntu-xenial)
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
           REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
-          HYPERSCAN="yes"
+          HYPERSCAN="bundled"
           ;;
         ubuntu-bionic)
           SPECIFIC_C_COMPILER="clang-9"
           SPECIFIC_CXX_COMPILER="clang++-9"
-          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
-        ubuntu-*)
-          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
+        *)
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
-        *) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}" HYPERSCAN="yes" ;;
       esac
 
       dep_deb $d
@@ -617,6 +616,10 @@ build_rspamd_deb() {
   if [[ " ${REAL_DEPS} " != *" luajit-5.1-dev "* ]]; then
     # Use bundled luajit package, disable distro package.
     chroot ${HOME}/$d sh -c "sed -e \"/^ *luajit-5.1-dev/d\" -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
+  fi
+  if [[ " ${REAL_DEPS} " != *" libhyperscan-dev "* ]]; then
+    # Use bundled hyperscan package, disable distro package.
+    chroot ${HOME}/$d sh -c "sed -e \"/^ *libhyperscan-dev/d\" -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
   fi
   chroot ${HOME}/$d sh -c "sed -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
   chroot ${HOME}/$d sh -c "sed -e \"s/-DCMAKE_BUILD_TYPE=ReleaseWithDebInfo/-DCMAKE_BUILD_TYPE=Release/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
@@ -807,8 +810,7 @@ if [ $BUILD_STAGE -eq 1 ] ; then
         case $d in
           debian-jessie)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
-            RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
+            RULES_SED="-e 's/-DENABLE_HYPERSCAN=ON/-DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan/'"
             SPECIFIC_C_COMPILER="clang-8"
             SPECIFIC_CXX_COMPILER="clang++-8"
             ;;
@@ -816,43 +818,36 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             SPECIFIC_C_COMPILER="clang-9"
             SPECIFIC_CXX_COMPILER="clang++-9"
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
-            RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
+            RULES_SED="-e 's/-DENABLE_HYPERSCAN=ON/-DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan/'"
             ;;
-          debian-sid)
-            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
-            RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
+          debian-buster)
+            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
+            RULES_SED=""
             #SPECIFIC_C_COMPILER="clang-9"
             #SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
-          debian-buster)
-            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
-            RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
+          debian-sid)
+            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
+            RULES_SED=""
             #SPECIFIC_C_COMPILER="clang-9"
             #SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
           ubuntu-xenial)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
-            RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
+            RULES_SED="-e 's/-DENABLE_HYPERSCAN=ON/-DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan/'"
             SPECIFIC_C_COMPILER="clang-9"
             SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
           ubuntu-bionic)
             #SPECIFIC_C_COMPILER="clang-9"
             #SPECIFIC_CXX_COMPILER="clang++-9"
-            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
-            RULES_SED="-e 's/--with systemd/--with systemd --parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=ON -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
+            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
+            RULES_SED=""
             ;;
-          ubuntu-*)
-            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}"
-            RULES_SED="-e 's/--with systemd/--parallel/' \
-              -e 's/-DWANT_SYSTEMD_UNITS=ON/-DWANT_SYSTEMD_UNITS=OFF -DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan -DENABLE_FANN=OFF/'"
+          *)
+            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
+            RULES_SED=""
             ;;
-          *) REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP}" ;;
         esac
         build_rspamd_deb $d
 
