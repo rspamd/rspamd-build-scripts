@@ -622,26 +622,22 @@ build_rspamd_deb() {
     # Use bundled hyperscan package, disable distro package.
     chroot ${HOME}/$d sh -c "sed -e \"/^ *libhyperscan-dev/d\" -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
   fi
-  chroot ${HOME}/$d sh -c "sed -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
-  chroot ${HOME}/$d sh -c "sed -e \"s/-DCMAKE_BUILD_TYPE=ReleaseWithDebInfo/-DCMAKE_BUILD_TYPE=Release/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
   if [ -n "${STABLE}" ] ; then
-    chroot ${HOME}/$d sh -c "sed -e \"s/unstable/${_distname}/\" \
-      -e \"s/Mikhail Gusarov <dottedmag@debian.org>/Vsevolod Stakhov <vsevolod@highsecure.ru>/\" \
-      -e \"s/1.0.2/${RSPAMD_VER}-${_version}~${_distname}/\" < ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/changelog > /tmp/.tt ; \
-      mv /tmp/.tt ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/changelog"
+    # Updating the dist ('unstable') alone should be sufficient, assuming that
+    # the maintainer used 'set-version.sh' for releases. Update it just in case
+    # that is forgotten.
+    chroot ${HOME}/$d sh -c "sed -e \"1s/unstable/${_distname}/\" \
+      -e \"1s/([0-9.]*)/(${RSPAMD_VER}-${_version}~${_distname})/\" \
+      -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/changelog"
   else
-    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/unstable/${_distname}/\" \
-      -e \"s/Mikhail Gusarov <dottedmag@debian.org>/Vsevolod Stakhov <vsevolod@highsecure.ru>/\" \
-      -e \"s/1.0.2/${RSPAMD_VER}-0~git${_version}~${_id}~${_distname}/\" \
-      < rspamd-${RSPAMD_VER}/debian/changelog > /tmp/.tt ; \
-      mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/changelog"
+    chroot ${HOME}/$d sh -c "sed -e \"1s/unstable/${_distname}/\" \
+      -e \"1s/([0-9.]*)/(${RSPAMD_VER}-0~git${_version}~${_id}~${_distname})/\" \
+      -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/changelog"
   fi
   if [ -n "$RULES_SED" ] ; then
     chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed ${RULES_SED} < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; \
       mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
   fi
-  chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e 's/native/quilt/' < rspamd-${RSPAMD_VER}/debian/source/format > /tmp/.tt ; \
-    mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/source/format"
   rm -f ${HOME}/$d/build.stamp
   chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER} ; (DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc 2>&1 && touch /build.stamp)" | tee -a $LOG
   
@@ -665,19 +661,18 @@ build_rspamd_deb() {
       # Use bundled luajit package, disable distro package.
       chroot ${HOME}/$d sh -c "sed -e \"/^ *luajit-5.1-dev/d\" -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
     fi
-    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/Maintainer:.*/Maintainer: Vsevolod Stakhov <vsevolod@highsecure.ru>/\" < rspamd-${RSPAMD_VER}/debian/control > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/control"
-    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/-DCMAKE_BUILD_TYPE=ReleaseWithDebInfo/-DCMAKE_BUILD_TYPE=Debug -DSANITIZE=address/\" < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
+    chroot ${HOME}/$d sed -e "s/-DCMAKE_BUILD_TYPE=None/-DCMAKE_BUILD_TYPE=Debug -DSANITIZE=address/" -i "${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/rules"
     if [ -n "${STABLE}" ] ; then
-      chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/unstable/${_distname}/\" \
-        -e \"s/Mikhail Gusarov <dottedmag@debian.org>/Vsevolod Stakhov <vsevolod@highsecure.ru>/\" \
-        -e \"s/1.0.2/${RSPAMD_VER}-${_version}~${_distname}/\" < rspamd-${RSPAMD_VER}/debian/changelog > /tmp/.tt ; \
-        mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/changelog"
+      # Updating the dist ('unstable') alone should be sufficient, assuming that
+      # the maintainer used 'set-version.sh' for releases. Update it just in case
+      # that is forgotten.
+      chroot ${HOME}/$d sh -c "sed -e \"1s/unstable/${_distname}/\" \
+        -e \"1s/([0-9.]*)/(${RSPAMD_VER}-${_version}~${_distname})/\" \
+        -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/changelog"
     else
-      chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e \"s/unstable/${_distname}/\" \
-        -e \"s/Mikhail Gusarov <dottedmag@debian.org>/Vsevolod Stakhov <vsevolod@highsecure.ru>/\" \
-        -e \"s/1.0.2/${RSPAMD_VER}-0~git${_version}~${_id}~${_distname}/\" \
-        < rspamd-${RSPAMD_VER}/debian/changelog > /tmp/.tt ; \
-        mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/changelog"
+      chroot ${HOME}/$d sh -c "sed -e \"1s/unstable/${_distname}/\" \
+        -e \"1s/([0-9.]*)/(${RSPAMD_VER}-0~git${_version}~${_id}~${_distname})/\" \
+        -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/changelog"
     fi
     if [ -n "$RULES_SED" ] ; then
       chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed ${RULES_SED} < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; \
@@ -685,8 +680,6 @@ build_rspamd_deb() {
     fi
     chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed ${RULES_SED} < rspamd-${RSPAMD_VER}/debian/rules > /tmp/.tt ; \
       mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/rules"
-    chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX} ; sed -e 's/native/quilt/' < rspamd-${RSPAMD_VER}/debian/source/format > /tmp/.tt ; \
-      mv /tmp/.tt rspamd-${RSPAMD_VER}/debian/source/format"
     rm -f ${HOME}/$d/build.stamp
     chroot ${HOME}/$d sh -c "cd ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER} ; (DEBUILD_LINTIAN=no dpkg-buildpackage -us -uc 2>&1 && touch /build.stamp)" | tee -a $LOG
     
