@@ -593,14 +593,11 @@ build_rspamd_deb() {
     RULES_SED="${RULES_SED} -e \"s/-DDEBIAN_BUILD=1/-DDEBIAN_BUILD=1 -DGIT_ID=${_id} -DCMAKE_C_COMPILER=${SPECIFIC_C_COMPILER} -DCMAKE_CXX_COMPILER=${SPECIFIC_CXX_COMPILER}/\""
   fi
   if [ -n "${NO_LUAJIT}" ] ; then
-    RULES_SED="${RULES_SED} -e \"s/-DENABLE_LUAJIT=ON/-DENABLE_LUAJIT=OFF/\""
+    RULES_SED="${RULES_SED} -e \"s/EXTRA_ARGS :=/EXTRA_ARGS := -DENABLE_LUAJIT=OFF"
   else
     if [ "${BUNDLED_LUAJIT}" -eq 1 ] ; then
-      RULES_SED="${RULES_SED} -e \"s/-DENABLE_LUAJIT=ON/-DENABLE_LUAJIT=ON -DLUA_ROOT=\/luajit/\""
+      RULES_SED="${RULES_SED} -e \"s/EXTRA_ARGS :=/EXTRA_ARGS := -DLUA_ROOT=\/luajit/\""
     fi
-  fi
-  if [ -n "${NO_TORCH}" ] ; then
-    RULES_SED="${RULES_SED} -e \"s/-DENABLE_TORCH=ON/-DENABLE_TORCH=OFF/\""
   fi
   if [ -n "${NO_JEMALLOC}" ] ; then
     RULES_SED="${RULES_SED} -e \"s/-DENABLE_JEMALLOC=ON/-DENABLE_JEMALLOC=OFF/\""
