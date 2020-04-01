@@ -15,14 +15,14 @@ export DEPS_RPM="glib2-devel openssl-devel pcre-devel perl \
   file-devel git rsync perl-Digest-MD5  libicu-devel libunwind-devel curl"
 
 export MAIN_ARCH="x86_64"
-export RSPAMD_VER_UNSTABLE="2.5"
-export RSPAMD_VER_STABLE="2.4"
+export RSPAMD_VER_UNSTABLE="2.6"
+export RSPAMD_VER_STABLE="2.5"
 # RPM stupidity
 export BUILD_DIR="/build7558b18c49c3aede6aa20ecb0513b9eb2b39ce7db0c739ec006369009fdf893d91b9ec4199fa64acd80aa1de7fac87a148a6f65e98f258b455996c5f99d990d2"
 
 if [ -n "${STABLE}" ] ; then
   export RSPAMD_VER="${RSPAMD_VER_STABLE}"
-  export STABLE_VER="2"
+  export STABLE_VER="156"
 else
   export RSPAMD_VER="${RSPAMD_VER_UNSTABLE}"
 fi

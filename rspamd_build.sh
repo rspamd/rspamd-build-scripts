@@ -481,8 +481,8 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           HYPERSCAN="yes"
           ;;
         ubuntu-xenial)
-          SPECIFIC_C_COMPILER="clang-9"
-          SPECIFIC_CXX_COMPILER="clang++-9"
+          #SPECIFIC_C_COMPILER="clang-9"
+          #SPECIFIC_CXX_COMPILER="clang++-9"
           REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
           HYPERSCAN="bundled"
           ;;
@@ -602,6 +602,7 @@ build_rspamd_deb() {
   if [ -n "${NO_JEMALLOC}" ] ; then
     RULES_SED="${RULES_SED} -e \"s/-DENABLE_JEMALLOC=ON/-DENABLE_JEMALLOC=OFF/\""
   fi
+  RULES_SED="${RULES_SED} -e \"s/hardening=[+]all//\""
   DEB_BUILD_PREFIX="/release"
   chroot ${HOME}/$d sh -c "rm -fr rspamd-${RSPAMD_VER} ${DEB_BUILD_PREFIX} ; mkdir ${DEB_BUILD_PREFIX} ; cd ${DEB_BUILD_PREFIX} ; tar xvf /rspamd-${RSPAMD_VER}.tar.xz"
   chroot ${HOME}/$d sh -c "cp rspamd-${RSPAMD_VER}.tar.xz ${DEB_BUILD_PREFIX}/rspamd_${RSPAMD_VER}.orig.tar.xz"
@@ -657,6 +658,10 @@ build_rspamd_deb() {
     if [[ " ${REAL_DEPS} " != *" luajit-5.1-dev "* ]]; then
       # Use bundled luajit package, disable distro package.
       chroot ${HOME}/$d sh -c "sed -e \"/^ *luajit-5.1-dev/d\" -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
+    fi
+    if [[ " ${REAL_DEPS} " != *" libhyperscan-dev "* ]]; then
+      # Use bundled hyperscan package, disable distro package.
+      chroot ${HOME}/$d sh -c "sed -e \"/^ *libhyperscan-dev/d\" -i ${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/control"
     fi
     chroot ${HOME}/$d sed -e "s/-DCMAKE_BUILD_TYPE=None/-DCMAKE_BUILD_TYPE=Debug -DSANITIZE=address/" -i "${DEB_BUILD_PREFIX}/rspamd-${RSPAMD_VER}/debian/rules"
     if [ -n "${STABLE}" ] ; then
@@ -826,8 +831,8 @@ if [ $BUILD_STAGE -eq 1 ] ; then
           ubuntu-xenial)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/-DENABLE_HYPERSCAN=ON/-DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan/'"
-            SPECIFIC_C_COMPILER="clang-9"
-            SPECIFIC_CXX_COMPILER="clang++-9"
+            #SPECIFIC_C_COMPILER="clang-9"
+            #SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
           ubuntu-bionic)
             #SPECIFIC_C_COMPILER="clang-9"
