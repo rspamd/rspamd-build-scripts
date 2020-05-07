@@ -492,6 +492,12 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
+        ubuntu-focal)
+          SPECIFIC_C_COMPILER="clang-9"
+          SPECIFIC_CXX_COMPILER="clang++-9"
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
+          HYPERSCAN="yes"
+          ;;
         *)
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"

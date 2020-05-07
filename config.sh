@@ -6,6 +6,7 @@ export DEPS_DEB="fakeroot make ca-certificates less vim devscripts debhelper \
   libmagic-dev git ragel libicu-dev curl libunwind-dev libsodium-dev"
 export DISTRIBS_DEB="ubuntu-xenial \
   ubuntu-bionic \
+  ubuntu-focal \
   debian-stretch \
   debian-sid
   debian-buster"
