@@ -486,9 +486,9 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
           HYPERSCAN="bundled"
           ;;
-        ubuntu-bionic)
-          SPECIFIC_C_COMPILER="clang-9"
-          SPECIFIC_CXX_COMPILER="clang++-9"
+        "ubuntu-bionic" | "ubuntu-focal")
+          #SPECIFIC_C_COMPILER="clang-9"
+          #SPECIFIC_CXX_COMPILER="clang++-9"
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
@@ -834,7 +834,7 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             #SPECIFIC_C_COMPILER="clang-9"
             #SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
-          ubuntu-bionic)
+          "ubuntu-bionic" | "ubuntu-focal")
             #SPECIFIC_C_COMPILER="clang-9"
             #SPECIFIC_CXX_COMPILER="clang++-9"
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
