@@ -21,6 +21,7 @@ CXX_COMPILER=g++
 NO_DELETE=0
 NO_I386=1
 NO_ASAN=0
+UPLOAD_SUFFIX="dist/"
 LOG="./rspamd_build.log"
 
 usage()
@@ -475,8 +476,8 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           HYPERSCAN="yes"
           ;;
         debian-sid)
-          SPECIFIC_C_COMPILER="clang-9"
-          SPECIFIC_CXX_COMPILER="clang++-9"
+          SPECIFIC_C_COMPILER="clang"
+          SPECIFIC_CXX_COMPILER="clang++"
           REAL_DEPS="$DEPS_DEB build-essential ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
@@ -486,7 +487,13 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
           HYPERSCAN="bundled"
           ;;
-        "ubuntu-bionic" | "ubuntu-focal")
+        "ubuntu-bionic")
+          SPECIFIC_C_COMPILER="clang-9"
+          SPECIFIC_CXX_COMPILER="clang++-9"
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
+          HYPERSCAN="yes"
+          ;;
+        "ubuntu-focal")
           #SPECIFIC_C_COMPILER="clang-9"
           #SPECIFIC_CXX_COMPILER="clang++-9"
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
@@ -814,7 +821,7 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             SPECIFIC_C_COMPILER="clang-9"
             SPECIFIC_CXX_COMPILER="clang++-9"
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
-            RULES_SED="-e 's/-DENABLE_HYPERSCAN=ON/-DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan/'"
+            RULES_SED="-e 's/-DENABLE_HYPERSCAN=ON/-DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan/' -e 's/-DENABLE_LIBCXX=OFF/-DENABLE_LIBCXX=ON/'"
             ;;
           debian-buster)
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
@@ -834,11 +841,18 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             #SPECIFIC_C_COMPILER="clang-9"
             #SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
-          "ubuntu-bionic" | "ubuntu-focal")
+          ubuntu-bionic)
+            SPECIFIC_C_COMPILER="clang-9"
+            SPECIFIC_CXX_COMPILER="clang++-9"
+            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
+            RULES_SED="-e 's/-DENABLE_STATIC_LIBCXX=OFF/-DENABLE_STATIC_LIBCXX=OFF/' -e 's/-DENABLE_LIBCXX=OFF/-DENABLE_LIBCXX=ON/'"
+            ;;
+          ubuntu-focal)
             #SPECIFIC_C_COMPILER="clang-9"
             #SPECIFIC_CXX_COMPILER="clang++-9"
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
             RULES_SED=""
+            #RULES_SED="-e 's/-DENABLE_STATIC_LIBCXX=OFF/-DENABLE_STATIC_LIBCXX=OFF/' -e 's/-DENABLE_LIBCXX=OFF/-DENABLE_LIBCXX=ON/'"
             ;;
           *)
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
@@ -986,9 +1000,9 @@ EOD
         dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/asan/rspamd_${_pkg_ver}*.deb
         dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/asan/rspamd-dbg_${_pkg_ver}*.deb
         debsign --re-sign -k $KEY ${HOME}/$d/asan/rspamd_${_pkg_ver}*.changes
-        reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/asan/rspamd_${_pkg_ver}_amd64.deb
-        reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/asan/rspamd-dbg_${_pkg_ver}_amd64.deb
-        reprepro -b $_repodir -v --keepunreferencedfiles includedsc $_distname $d/asan/rspamd_${_pkg_ver}.dsc
+        reprepro -b $_repodir -V --keepunreferencedfiles includedeb $_distname $d/asan/rspamd_${_pkg_ver}_amd64.deb
+        reprepro -b $_repodir -V --keepunreferencedfiles includedeb $_distname $d/asan/rspamd-dbg_${_pkg_ver}_amd64.deb
+        reprepro -b $_repodir -V --keepunreferencedfiles includedsc $_distname $d/asan/rspamd_${_pkg_ver}.dsc
 
         gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
           mv $_repodir/dists/$_distname/Release.sig $_repodir/dists/$_distname/Release.gpg
@@ -1094,17 +1108,17 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
   if [ $DEBIAN -ne 0 ] ; then
     if [ -n "${STABLE}" ] ; then
       rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" ${RSYNC_ARGS} \
-        ${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_STABLE}
+        ${HOME}/repos/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_STABLE}
       if [ ${NO_ASAN} -ne 1 ] ; then
         rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" ${RSYNC_ARGS} \
-          ${HOME}/repos-asan/* ${UPLOAD_HOST}:${TARGET_DEB_STABLE}-asan
+          ${HOME}/repos-asan/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_STABLE}-asan
       fi
     else
       rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" ${RSYNC_ARGS} \
-        ${HOME}/repos/* ${UPLOAD_HOST}:${TARGET_DEB_UNSTABLE}
+        ${HOME}/repos/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_UNSTABLE}
       if [ ${NO_ASAN} -ne 1 ] ; then
         rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" ${RSYNC_ARGS} \
-          ${HOME}/repos-asan/* ${UPLOAD_HOST}:${TARGET_DEB_UNSTABLE}-asan
+          ${HOME}/repos-asan/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_UNSTABLE}-asan
       fi
     fi
   fi
@@ -1113,17 +1127,17 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
     for d in $DISTRIBS_RPM ; do
       if [ -n "${STABLE}" ] ; then
         rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
-          ${HOME}/rpm/$d/* ${UPLOAD_HOST}:${TARGET_RPM_STABLE}/$d/
+          ${HOME}/rpm/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_STABLE}/$d/
         if [ ${NO_ASAN} -ne 1 ] ; then
           rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
-            ${HOME}/rpm-asan/$d/* ${UPLOAD_HOST}:${TARGET_RPM_STABLE}-asan/$d/
+            ${HOME}/rpm-asan/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_STABLE}-asan/$d/
         fi
       else
         rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
-          ${HOME}/rpm/$d/* ${UPLOAD_HOST}:${TARGET_RPM_UNSTABLE}/$d/
+          ${HOME}/rpm/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}/$d/
         if [ ${NO_ASAN} -ne 1 ] ; then
           rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
-            ${HOME}/rpm-asan/$d/* ${UPLOAD_HOST}:${TARGET_RPM_UNSTABLE}-asan/$d/
+            ${HOME}/rpm-asan/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}-asan/$d/
         fi
       fi
     done
