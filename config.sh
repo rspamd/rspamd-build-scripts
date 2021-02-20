@@ -3,12 +3,10 @@
 export DEPS_DEB="fakeroot make ca-certificates less vim devscripts debhelper \
   dpkg-dev cmake libevent-dev libglib2.0-dev libpcre2-dev libjemalloc-dev \
   libssl-dev libcurl4-openssl-dev libsqlite3-dev perl \
-  libmagic-dev git ragel libicu-dev curl libunwind-dev libsodium-dev build-essential liblua5.1-dev"
+  libmagic-dev git ragel libicu-dev curl libunwind-dev libsodium-dev build-essential liblua5.1-dev libc++-dev libc++abi-dev"
 export DISTRIBS_DEB="ubuntu-xenial \
   ubuntu-bionic \
   ubuntu-focal \
-  debian-stretch \
-  debian-sid
   debian-buster"
 export DISTRIBS_RPM="centos-7 centos-8"
 export DEPS_RPM="glib2-devel openssl-devel pcre-devel perl \
@@ -16,14 +14,14 @@ export DEPS_RPM="glib2-devel openssl-devel pcre-devel perl \
   file-devel git rsync perl-Digest-MD5  libicu-devel libunwind-devel curl"
 
 export MAIN_ARCH="x86_64"
-export RSPAMD_VER_UNSTABLE="2.6"
-export RSPAMD_VER_STABLE="2.5"
+export RSPAMD_VER_UNSTABLE="2.8"
+export RSPAMD_VER_STABLE="2.7"
 # RPM stupidity
 export BUILD_DIR="/build7558b18c49c3aede6aa20ecb0513b9eb2b39ce7db0c739ec006369009fdf893d91b9ec4199fa64acd80aa1de7fac87a148a6f65e98f258b455996c5f99d990d2"
 
 if [ -n "${STABLE}" ] ; then
   export RSPAMD_VER="${RSPAMD_VER_STABLE}"
-  export STABLE_VER="156"
+  export STABLE_VER="42"
 else
   export RSPAMD_VER="${RSPAMD_VER_UNSTABLE}"
 fi
