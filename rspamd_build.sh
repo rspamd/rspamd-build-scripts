@@ -561,9 +561,9 @@ if [ $DEPS_STAGE -eq 1 ] ; then
             ;;
           centos-8)
             HYPERSCAN="yes"
-            #DEVTOOLSET_ENABLE="/opt/rh/devtoolset-8/enable"
+            DEVTOOLSET_ENABLE="/opt/rh/gcc-toolset-9/enable"
             #CMAKE="cmake3"
-            REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel"
+            REAL_DEPS="$DEPS_RPM ${LUAJIT_DEP} sqlite-devel gcc-toolset-9"
             YUM="yum -y"
             ;;
           *)
@@ -731,11 +731,11 @@ build_rspamd_rpm() {
   mv /tmp/.tt ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec
   
   rm -f ${HOME}/$d/build.stamp
-  (chroot ${HOME}/$d rpmbuild \
+  (chroot ${HOME}/$d /bin/sh -c "if [ -n \"${DEVTOOLSET_ENABLE}\" ] ; then source ${DEVTOOLSET_ENABLE} ; fi ; rpmbuild \
     --define='jobs ${JOBS}' \
     --define='BuildRoot %{_tmppath}/%{name}' \
-    --define="_topdir ${BUILD_DIR}" \
-    -ba ${BUILD_DIR}/SPECS/rspamd.spec 2>&1 && touch ${HOME}/$d/build.stamp) | tee -a $LOG
+    --define=\"_topdir ${BUILD_DIR}\" \
+    -ba ${BUILD_DIR}/SPECS/rspamd.spec" 2>&1 && touch ${HOME}/$d/build.stamp) | tee -a $LOG
   if [ ! -f ${HOME}/$d/build.stamp ] ; then
     echo "Build failed for $d"
     exit 1
@@ -764,11 +764,11 @@ build_rspamd_rpm() {
     mv /tmp/.tt ${HOME}/$d/${BUILD_DIR}/SPECS/rspamd.spec
     
     rm -f ${HOME}/$d/build.stamp
-    (chroot ${HOME}/$d rpmbuild \
+    (chroot ${HOME}/$d /bin/sh -c "if [ -n \"${DEVTOOLSET_ENABLE}\" ] ; then source ${DEVTOOLSET_ENABLE} ; fi ; rpmbuild \
       --define='jobs ${JOBS}' \
       --define='BuildRoot %{_tmppath}/%{name}' \
-      --define="_topdir ${BUILD_DIR}" \
-      -ba ${BUILD_DIR}/SPECS/rspamd.spec 2>&1 && touch ${HOME}/$d/build.stamp) | tee -a $LOG
+      --define=\"_topdir ${BUILD_DIR}\" \
+      -ba ${BUILD_DIR}/SPECS/rspamd.spec" 2>&1 && touch ${HOME}/$d/build.stamp) | tee -a $LOG
     if [ ! -f ${HOME}/$d/build.stamp ] ; then
       echo "ASAN Build failed for $d"
     fi
@@ -909,6 +909,7 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             ;;
           centos-8)
             HYPERSCAN="yes"
+			DEVTOOLSET_ENABLE="/opt/rh/gcc-toolset-9/enable"
             #DEVTOOLSET_ENABLE="/opt/rh/devtoolset-8/enable"
             #CMAKE="cmake3"
             ;;
