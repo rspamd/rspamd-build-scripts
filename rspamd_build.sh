@@ -475,6 +475,10 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
+        debian-bullseye)
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
+          HYPERSCAN="yes"
+          ;;
         debian-sid)
           SPECIFIC_C_COMPILER="clang"
           SPECIFIC_CXX_COMPILER="clang++"
@@ -824,6 +828,12 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             RULES_SED="-e 's/-DENABLE_HYPERSCAN=ON/-DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan/' -e 's/-DENABLE_LIBCXX=OFF/-DENABLE_LIBCXX=ON/'"
             ;;
           debian-buster)
+            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
+            RULES_SED=""
+            #SPECIFIC_C_COMPILER="clang-9"
+            #SPECIFIC_CXX_COMPILER="clang++-9"
+            ;;
+          debian-bullseye)
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
             RULES_SED=""
             #SPECIFIC_C_COMPILER="clang-9"

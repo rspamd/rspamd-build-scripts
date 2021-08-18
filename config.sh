@@ -7,14 +7,15 @@ export DEPS_DEB="fakeroot make ca-certificates less vim devscripts debhelper \
 export DISTRIBS_DEB="ubuntu-xenial \
   ubuntu-bionic \
   ubuntu-focal \
-  debian-buster"
+  debian-buster
+  debian-bullseye"
 export DISTRIBS_RPM="centos-7 centos-8"
 export DEPS_RPM="glib2-devel openssl-devel pcre-devel perl \
   cmake rpm-build gcc make \
   file-devel git rsync perl-Digest-MD5  libicu-devel libunwind-devel curl"
 
 export MAIN_ARCH="x86_64"
-export RSPAMD_VER_UNSTABLE="2.8"
+export RSPAMD_VER_UNSTABLE="3.0"
 export RSPAMD_VER_STABLE="2.7"
 # RPM stupidity
 export BUILD_DIR="/build7558b18c49c3aede6aa20ecb0513b9eb2b39ce7db0c739ec006369009fdf893d91b9ec4199fa64acd80aa1de7fac87a148a6f65e98f258b455996c5f99d990d2"
