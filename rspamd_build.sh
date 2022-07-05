@@ -498,8 +498,10 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           HYPERSCAN="yes"
           ;;
         "ubuntu-focal")
-          #SPECIFIC_C_COMPILER="clang-9"
-          #SPECIFIC_CXX_COMPILER="clang++-9"
+          REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
+          HYPERSCAN="yes"
+          ;;
+        "ubuntu-jammy")
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
@@ -858,11 +860,12 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             RULES_SED="-e 's/-DENABLE_STATIC_LIBCXX=OFF/-DENABLE_STATIC_LIBCXX=OFF/' -e 's/-DENABLE_LIBCXX=OFF/-DENABLE_LIBCXX=ON/'"
             ;;
           ubuntu-focal)
-            #SPECIFIC_C_COMPILER="clang-9"
-            #SPECIFIC_CXX_COMPILER="clang++-9"
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
             RULES_SED=""
-            #RULES_SED="-e 's/-DENABLE_STATIC_LIBCXX=OFF/-DENABLE_STATIC_LIBCXX=OFF/' -e 's/-DENABLE_LIBCXX=OFF/-DENABLE_LIBCXX=ON/'"
+            ;;
+          ubuntu-xenial)
+            REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
+            RULES_SED=""
             ;;
           *)
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"

@@ -7,6 +7,7 @@ export DEPS_DEB="fakeroot make ca-certificates less vim devscripts debhelper \
 export DISTRIBS_DEB="ubuntu-xenial \
   ubuntu-bionic \
   ubuntu-focal \
+  ubuntu-jammy \
   debian-buster
   debian-bullseye"
 export DISTRIBS_RPM="centos-7 centos-8"
