@@ -4,10 +4,10 @@ export DEPS_DEB="fakeroot make ca-certificates less vim devscripts debhelper \
   dpkg-dev cmake libevent-dev libglib2.0-dev libpcre2-dev libjemalloc-dev \
   libssl-dev libcurl4-openssl-dev libsqlite3-dev perl \
   libmagic-dev git ragel libicu-dev curl libunwind-dev libsodium-dev build-essential liblua5.1-dev libc++-dev libc++abi-dev"
-export DISTRIBS_DEB="ubuntu-xenial \
-  ubuntu-bionic \
+export DISTRIBS_DEB="ubuntu-bionic \
   ubuntu-focal \
-  debian-buster
+  ubuntu-jammy \
+  debian-buster \
   debian-bullseye"
 export DISTRIBS_RPM="centos-7 centos-8"
 export DEPS_RPM="glib2-devel openssl-devel pcre-devel perl \
