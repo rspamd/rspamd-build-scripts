@@ -466,8 +466,8 @@ if [ $DEPS_STAGE -eq 1 ] ; then
         debian-stretch)
           REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
           HYPERSCAN="bundled"
-          SPECIFIC_C_COMPILER="clang-9"
-          SPECIFIC_CXX_COMPILER="clang++-9"
+          SPECIFIC_C_COMPILER="clang-11"
+          SPECIFIC_CXX_COMPILER="clang++-11"
           ;;
         debian-buster)
           SPECIFIC_C_COMPILER="clang-9"
@@ -492,12 +492,12 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           HYPERSCAN="bundled"
           ;;
         "ubuntu-bionic")
-          SPECIFIC_C_COMPILER="clang-9"
-          SPECIFIC_CXX_COMPILER="clang++-9"
+          SPECIFIC_C_COMPILER="clang-11"
+          SPECIFIC_CXX_COMPILER="clang++-11"
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
-        "ubuntu-focal")
+        "ubuntu-focal"|"ubuntu-jammy")
           #SPECIFIC_C_COMPILER="clang-9"
           #SPECIFIC_CXX_COMPILER="clang++-9"
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
@@ -822,8 +822,8 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             SPECIFIC_CXX_COMPILER="clang++-8"
             ;;
           debian-stretch)
-            SPECIFIC_C_COMPILER="clang-9"
-            SPECIFIC_CXX_COMPILER="clang++-9"
+            SPECIFIC_C_COMPILER="clang-11"
+            SPECIFIC_CXX_COMPILER="clang++-11"
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/-DENABLE_HYPERSCAN=ON/-DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan/' -e 's/-DENABLE_LIBCXX=OFF/-DENABLE_LIBCXX=ON/'"
             ;;
@@ -852,12 +852,12 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             #SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
           ubuntu-bionic)
-            SPECIFIC_C_COMPILER="clang-9"
-            SPECIFIC_CXX_COMPILER="clang++-9"
+            SPECIFIC_C_COMPILER="clang-11"
+            SPECIFIC_CXX_COMPILER="clang++-11"
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
             RULES_SED="-e 's/-DENABLE_STATIC_LIBCXX=OFF/-DENABLE_STATIC_LIBCXX=OFF/' -e 's/-DENABLE_LIBCXX=OFF/-DENABLE_LIBCXX=ON/'"
             ;;
-          ubuntu-focal)
+          ubuntu-focal|ubuntu-jammy)
             #SPECIFIC_C_COMPILER="clang-9"
             #SPECIFIC_CXX_COMPILER="clang++-9"
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
