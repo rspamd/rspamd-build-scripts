@@ -23,6 +23,7 @@ NO_I386=1
 NO_ASAN=0
 UPLOAD_SUFFIX="dist/"
 LOG="./rspamd_build.log"
+CLANG_DEFAULT_VERSION=13
 
 usage()
 {
@@ -458,20 +459,20 @@ if [ $DEPS_STAGE -eq 1 ] ; then
 
       case $d in
         debian-jessie)
-          SPECIFIC_C_COMPILER="clang-8"
-          SPECIFIC_CXX_COMPILER="clang++-8"
+          SPECIFIC_C_COMPILER="clang-${CLANG_DEFAULT_VERSION}"
+          SPECIFIC_CXX_COMPILER="clang++-${CLANG_DEFAULT_VERSION}"
           REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
           HYPERSCAN="bundled"
           ;;
         debian-stretch)
           REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
           HYPERSCAN="bundled"
-          SPECIFIC_C_COMPILER="clang-11"
-          SPECIFIC_CXX_COMPILER="clang++-11"
+          SPECIFIC_C_COMPILER="clang-${CLANG_DEFAULT_VERSION}"
+          SPECIFIC_CXX_COMPILER="clang++-${CLANG_DEFAULT_VERSION}"
           ;;
         debian-buster)
-          SPECIFIC_C_COMPILER="clang-9"
-          SPECIFIC_CXX_COMPILER="clang++-9"
+          SPECIFIC_C_COMPILER="clang-${CLANG_DEFAULT_VERSION}"
+          SPECIFIC_CXX_COMPILER="clang++-${CLANG_DEFAULT_VERSION}"
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
@@ -480,8 +481,8 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           HYPERSCAN="yes"
           ;;
         debian-sid)
-          SPECIFIC_C_COMPILER="clang"
-          SPECIFIC_CXX_COMPILER="clang++"
+          SPECIFIC_C_COMPILER="clang-${CLANG_DEFAULT_VERSION}"
+          SPECIFIC_CXX_COMPILER="clang++-${CLANG_DEFAULT_VERSION}"
           REAL_DEPS="$DEPS_DEB build-essential ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
@@ -492,8 +493,8 @@ if [ $DEPS_STAGE -eq 1 ] ; then
           HYPERSCAN="bundled"
           ;;
         "ubuntu-bionic")
-          SPECIFIC_C_COMPILER="clang-11"
-          SPECIFIC_CXX_COMPILER="clang++-11"
+          SPECIFIC_C_COMPILER="clang-${CLANG_DEFAULT_VERSION}"
+          SPECIFIC_CXX_COMPILER="clang++-${CLANG_DEFAULT_VERSION}"
           REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
           HYPERSCAN="yes"
           ;;
@@ -818,20 +819,20 @@ if [ $BUILD_STAGE -eq 1 ] ; then
           debian-jessie)
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/-DENABLE_HYPERSCAN=ON/-DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan/'"
-            SPECIFIC_C_COMPILER="clang-8"
-            SPECIFIC_CXX_COMPILER="clang++-8"
+            SPECIFIC_C_COMPILER="clang-${CLANG_DEFAULT_VERSION}"
+            SPECIFIC_CXX_COMPILER="clang++-${CLANG_DEFAULT_VERSION}"
             ;;
           debian-stretch)
-            SPECIFIC_C_COMPILER="clang-11"
-            SPECIFIC_CXX_COMPILER="clang++-11"
+            SPECIFIC_C_COMPILER="clang-${CLANG_DEFAULT_VERSION}"
+            SPECIFIC_CXX_COMPILER="clang++-${CLANG_DEFAULT_VERSION}"
             REAL_DEPS="$DEPS_DEB dh-systemd ${LUAJIT_DEP}"
             RULES_SED="-e 's/-DENABLE_HYPERSCAN=ON/-DENABLE_HYPERSCAN=ON -DHYPERSCAN_ROOT_DIR=\/opt\/hyperscan/' -e 's/-DENABLE_LIBCXX=OFF/-DENABLE_LIBCXX=ON/'"
             ;;
           debian-buster)
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
             RULES_SED=""
-            #SPECIFIC_C_COMPILER="clang-9"
-            #SPECIFIC_CXX_COMPILER="clang++-9"
+            SPECIFIC_C_COMPILER="clang-${CLANG_DEFAULT_VERSION}"
+            SPECIFIC_CXX_COMPILER="clang++-${CLANG_DEFAULT_VERSION}"
             ;;
           debian-bullseye)
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
@@ -852,8 +853,8 @@ if [ $BUILD_STAGE -eq 1 ] ; then
             #SPECIFIC_CXX_COMPILER="clang++-9"
             ;;
           ubuntu-bionic)
-            SPECIFIC_C_COMPILER="clang-11"
-            SPECIFIC_CXX_COMPILER="clang++-11"
+            SPECIFIC_C_COMPILER="clang-${CLANG_DEFAULT_VERSION}"
+            SPECIFIC_CXX_COMPILER="clang++-${CLANG_DEFAULT_VERSION}"
             REAL_DEPS="$DEPS_DEB ${LUAJIT_DEP} libhyperscan-dev"
             RULES_SED="-e 's/-DENABLE_STATIC_LIBCXX=OFF/-DENABLE_STATIC_LIBCXX=OFF/' -e 's/-DENABLE_LIBCXX=OFF/-DENABLE_LIBCXX=ON/'"
             ;;
