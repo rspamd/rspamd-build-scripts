@@ -196,8 +196,13 @@ if [ $BUILD_STAGE -eq 1 ] ; then
   for d in $DISTRIBS_RPM ; do    
     _distro=`echo $d | cut -d'-' -f 1`
     _ver=`echo $d | cut -d'-' -f 2`
-    build_rspamd_rpm $SSH_HOST_X86 $_distro $_ver $_version
-    build_rspamd_rpm $SSH_HOST_AARCH64 $_distro $_ver $_version
+    if [ -n "${STABLE}" ] ; then
+      pkg_version="${_version}.git${gh_hash}"
+    else
+      pkg_version="0~git${_version}~${gh_hash}~$_ver"
+    fi
+    build_rspamd_rpm $SSH_HOST_X86 $_distro $_ver $pkg_version
+    build_rspamd_rpm $SSH_HOST_AARCH64 $_distro $_ver $pkg_version
   done
 
 
