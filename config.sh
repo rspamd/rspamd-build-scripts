@@ -7,9 +7,12 @@ export DISTRIBS_DEB="ubuntu-bionic \
   debian-bullseye"
 export DISTRIBS_RPM="centos-7 centos-8 fedora-37"
 
-# Must be overriden
+# Can be overriden (e.g. adding a username)
 export SSH_CMD="ssh"
 export SCP_CMD="scp"
+export TARGET_DIR="./out"
+
+# Must be overriden
 export SSH_HOST_X86="example.com"
 export SSH_HOST_AARCH64="example.com"
 
