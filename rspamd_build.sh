@@ -135,6 +135,10 @@ build_rspamd_deb() {
   $SSH_CMD $HOST "(cd ./rspamd && env CHANGELOG_NAME=\"Vsevolod Stakhov\" CHANGELOG_EMAIL=vsevolod@highsecure.ru ASAN=0 LUAJIT=1 DOCKER_REPO=\"rspamd/pkg\" PRESERVE_ENVVARS=\"LUAJIT,ASAN\" \
     VERSION=${RSPAMD_VER} RELEASE=${RSPAMD_REL} OS=${DISTNAME} DIST=${DISTVER} ../packpack/packpack)" || { echo "Failed to build: rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DISTNAME}-${DISTVER}" ; exit 1 ; }
   $SCP_CMD $HOST:rspamd/build/\*.deb ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
+  $SCP_CMD $HOST:rspamd/build/\*.dsc ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
+  $SCP_CMD $HOST:rspamd/build/\*changes ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
+  $SCP_CMD $HOST:rspamd/build/\*buildinfo ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
+  $SCP_CMD $HOST:rspamd/build/\*tar* ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
 }
 
 build_rspamd_rpm() {
@@ -185,7 +189,7 @@ if [ $BUILD_STAGE -eq 1 ] ; then
   if [ -n "${STABLE}" ] ; then
     _version="${STABLE_VER}"
   else
-    _version=`cat ${HOME}/version || echo 0`
+    _version=`cat ./version || echo 0`
     if [ $# -ge 1 ] ; then
       DISTRIBS=$@
     else
@@ -201,7 +205,12 @@ if [ $BUILD_STAGE -eq 1 ] ; then
     else
       pkg_version="0~git${_version}~${gh_hash}~$_ver"
     fi
-    mkdir -p ${TARGET_DIR}/${_distro}-${_ver} ; rm -f ${TARGET_DIR}/${_distro}-${_ver}/*.deb
+    mkdir -p ${TARGET_DIR}/${_distro}-${_ver}
+    rm -f ${TARGET_DIR}/${_distro}-${_ver}/*.deb
+    rm -f ${TARGET_DIR}/${_distro}-${_ver}/*.dsc
+    rm -f ${TARGET_DIR}/${_distro}-${_ver}/*changes
+    rm -f ${TARGET_DIR}/${_distro}-${_ver}/*buildinfo
+    rm -f ${TARGET_DIR}/${_distro}-${_ver}/*tar*
     build_rspamd_deb $SSH_HOST_X86 $_distro $_ver $pkg_version
     if [ ${ARM} -ne 0 ] ; then
       build_rspamd_deb $SSH_HOST_AARCH64 $_distro $_ver $pkg_version
@@ -226,7 +235,7 @@ if [ $BUILD_STAGE -eq 1 ] ; then
 
   # Increase version
   if [ -z "${STABLE}" -a -z "${NO_INC}" ] ; then
-    echo $_version > ${HOME}/version
+    echo $_version > ./version
   fi
 fi
 
@@ -235,18 +244,14 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
   if [ -n "${STABLE}" ] ; then
     _version="${STABLE_VER}"
   else
-    _version=`cat ${HOME}/version || echo 0`
+    _version=`cat ./version || echo 0`
   fi
 
-  _id=`git -C ${HOME}/rspamd rev-parse --short HEAD`
-
   if [ $DEBIAN -ne 0 ] ; then
-    rm -fr ${HOME}/repos/*
-    gpg --armor --output ${HOME}/repos/gpg.key --export $KEY
-    mkdir ${HOME}/repos/conf || true
-    rm -fr ${HOME}/repos-asan/*
-    gpg --armor --output ${HOME}/repos-asan/gpg.key --export $KEY
-    mkdir ${HOME}/repos-asan/conf || true
+    mkdir -p ${TARGET_DIR}/repos/
+    rm -fr ${TARGET_DIR}/repos/*
+    gpg --armor --output ${TARGET_DIR}/repos/gpg.key --export $KEY
+    mkdir ${TARGET_DIR}/repos/conf || true
 
     for d in $DISTRIBS_DEB ; do
       _distname=`echo $d | sed -r -e 's/ubuntu-|debian-//'`
@@ -254,18 +259,14 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
         _pkg_ver="${RSPAMD_VER}-${_version}~${_distname}"
         _repo_descr="Apt repository for rspamd stable builds"
       else
-        _pkg_ver="${RSPAMD_VER}-0~git${_version}~${_id}~${_distname}"
+        _pkg_ver="${RSPAMD_VER}-0~git${_version}~${gh_hash}~${_distname}"
         _repo_descr="Apt repository for rspamd nightly builds"
       fi
-      if [ -z "${NO_I386}" ] ; then
-        ARCHS="source amd64 i386"
-      else
-        ARCHS="source amd64"
-      fi
+      ARCHS="source amd64"
       if [ $ARM -ne 0 ] ; then
-        ARCHS="${ARCHS} armhf"
+        ARCHS="${ARCHS} arm64"
       fi
-      _repodir=${HOME}/repos/
+      _repodir=${TARGET_DIR}/repos/
       cat >> $_repodir/conf/distributions <<EOD
 Origin: Rspamd
 Label: Rspamd
@@ -276,78 +277,65 @@ Description: ${_repo_descr}
 SignWith: ${KEY}
 
 EOD
-      dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/release/rspamd_${_pkg_ver}*.deb
-      dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/release/rspamd-dbg_${_pkg_ver}*.deb
-      debsign --re-sign -k $KEY ${HOME}/$d/release/rspamd_${_pkg_ver}*.changes
-      reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/release/rspamd_${_pkg_ver}_amd64.deb
-      reprepro -b $_repodir -v --keepunreferencedfiles includedeb $_distname $d/release/rspamd-dbg_${_pkg_ver}_amd64.deb
-      reprepro -b $_repodir -v --keepunreferencedfiles includedsc $_distname $d/release/rspamd_${_pkg_ver}.dsc
+      dpkg-sig -k $KEY --batch=1 --sign builder ${TARGET_DIR}/$d/rspamd_${_pkg_ver}*.deb
+      dpkg-sig -k $KEY --batch=1 --sign builder ${TARGET_DIR}/$d/rspamd-asan_${_pkg_ver}*.deb
+      dpkg-sig -k $KEY --batch=1 --sign builder ${TARGET_DIR}/$d/rspamd-dbg_${_pkg_ver}*.deb
+      dpkg-sig -k $KEY --batch=1 --sign builder ${TARGET_DIR}/$d/rspamd-asan-dbg_${_pkg_ver}*.deb
+      debsign --re-sign -k $KEY ${TARGET_DIR}/$d/rspamd_${_pkg_ver}*.changes
+      reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd_${_pkg_ver}_amd64.deb
+      reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-dbg_${_pkg_ver}_amd64.deb
+      reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan_${_pkg_ver}_amd64.deb
+      reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan-dbg_${_pkg_ver}_amd64.deb
+      if [ $ARM -ne 0 ] ; then
+        reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd_${_pkg_ver}_arm64.deb
+        reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-dbg_${_pkg_ver}_arm64.deb
+        reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan_${_pkg_ver}_arm64.deb
+        reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan-dbg_${_pkg_ver}_arm64.deb
+      fi
+      reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedsc $_distname ${TARGET_DIR}/$d/rspamd_${_pkg_ver}.dsc
 
       gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
         mv $_repodir/dists/$_distname/Release.sig $_repodir/dists/$_distname/Release.gpg
-
-      if [ ${NO_ASAN} -ne 1 ] ; then
-        _repodir=${HOME}/repos-asan/
-        cat >> $_repodir/conf/distributions <<EOD
-Origin: Rspamd
-Label: Rspamd
-Codename: ${_distname}
-Architectures: ${ARCHS}
-Components: main
-Description: ${_repo_descr} ASAN builds
-SignWith: ${KEY}
-
-EOD
-        dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/asan/rspamd_${_pkg_ver}*.deb
-        dpkg-sig -k $KEY --batch=1 --sign builder ${HOME}/$d/asan/rspamd-dbg_${_pkg_ver}*.deb
-        debsign --re-sign -k $KEY ${HOME}/$d/asan/rspamd_${_pkg_ver}*.changes
-        reprepro -b $_repodir -V --keepunreferencedfiles includedeb $_distname $d/asan/rspamd_${_pkg_ver}_amd64.deb
-        reprepro -b $_repodir -V --keepunreferencedfiles includedeb $_distname $d/asan/rspamd-dbg_${_pkg_ver}_amd64.deb
-        reprepro -b $_repodir -V --keepunreferencedfiles includedsc $_distname $d/asan/rspamd_${_pkg_ver}.dsc
-
-        gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
-          mv $_repodir/dists/$_distname/Release.sig $_repodir/dists/$_distname/Release.gpg
-      fi # No asan
     done
   fi # DEBIAN == 0
 
   if [ $RPM -ne 0 ] ; then
-    rm -f ${HOME}/rpm/gpg.key || true
-    rm -f ${HOME}/rpm-asan/gpg.key || true
-    ARCH="${MAIN_ARCH}"
-    mkdir -p ${HOME}/rpm/ || true
-    mkdir -p ${HOME}/rpm-asan/ || true
-    gpg --armor --output ${HOME}/rpm/gpg.key --export $KEY
-    gpg --armor --output ${HOME}/rpm-asan/gpg.key --export $KEY
+    rm -f ${TARGET_DIR}/rpm/gpg.key || true
+    rm -f ${TARGET_DIR}/rpm-asan/gpg.key || true
+    ARCH="x86_64"
+    mkdir -p ${TARGET_DIR}/rpm/ || true
+    mkdir -p ${TARGET_DIR}/rpm-asan/ || true
+    gpg --armor --output ${TARGET_DIR}/rpm/gpg.key --export $KEY
+    gpg --armor --output ${TARGET_DIR}/rpm-asan/gpg.key --export $KEY
     for d in $DISTRIBS_RPM_FULL ; do
-      rm -fr ${HOME}/rpm/$d/ || true
-      rm -fr ${HOME}/rpm-asan/$d/ || true
-      mkdir -p ${HOME}/rpm/$d/${ARCH} || true
-      mkdir -p ${HOME}/rpm-asan/$d/${ARCH} || true
+      rm -fr ${TARGET_DIR}/rpm/$d/ || true
+      rm -fr ${TARGET_DIR}/rpm-asan/$d/ || true
+      mkdir -p ${TARGET_DIR}/rpm/$d/${ARCH} || true
+      mkdir -p ${TARGET_DIR}/rpm-asan/$d/${ARCH} || true
     done
     for d in $DISTRIBS_RPM ; do
-      cp ${HOME}/${d}/${BUILD_DIR}/RPMS/${ARCH}/*.rpm ${HOME}/rpm/$d/${ARCH}
-      for p in ${HOME}/rpm/$d/${ARCH}/*.rpm ; do
+      cp ${TARGET_DIR}/${d}/${BUILD_DIR}/RPMS/${ARCH}/*.rpm ${TARGET_DIR}/rpm/$d/${ARCH}
+      for p in ${TARGET_DIR}/rpm/$d/${ARCH}/*.rpm ; do
         ./rpm_sign.expect $p
       done
-      (cd ${HOME}/rpm/$d/${ARCH} && createrepo --compress-type gz . )
+      (cd ${TARGET_DIR}/rpm/$d/${ARCH} && createrepo --compress-type gz . )
 
       gpg --default-key ${KEY} --detach-sign --armor \
-        ${HOME}/rpm/$d/${ARCH}/repodata/repomd.xml
+        ${TARGET_DIR}/rpm/$d/${ARCH}/repodata/repomd.xml
 
       if [ ${NO_ASAN} -ne 1 ] ; then
-        cp ${HOME}/${d}/${BUILD_DIR}-asan/RPMS/${ARCH}/*.rpm ${HOME}/rpm-asan/$d/${ARCH}
-        for p in ${HOME}/rpm-asan/$d/${ARCH}/*.rpm ; do
+        cp ${TARGET_DIR}/${d}/${BUILD_DIR}-asan/RPMS/${ARCH}/*.rpm ${TARGET_DIR}/rpm-asan/$d/${ARCH}
+        for p in ${TARGET_DIR}/rpm-asan/$d/${ARCH}/*.rpm ; do
           ./rpm_sign.expect $p
         done
-        (cd ${HOME}/rpm-asan/$d/${ARCH} && createrepo --compress-type gz . )
+        (cd ${TARGET_DIR}/rpm-asan/$d/${ARCH} && createrepo --compress-type gz . )
 
         gpg --default-key ${KEY} --detach-sign --armor \
-          ${HOME}/rpm-asan/$d/${ARCH}/repodata/repomd.xml
+          ${TARGET_DIR}/rpm-asan/$d/${ARCH}/repodata/repomd.xml
       fi
 
       if [ -n "${STABLE}" ] ; then
-        cat <<EOD > ${HOME}/rpm/$d/rspamd.repo
+        cat <<EOD > ${TARGET_DIR}/rpm/$d/rspamd.repo
 [rspamd]
 name=Rspamd stable repository
 baseurl=http://rspamd.com/rpm-stable/$d/${ARCH}/
@@ -356,7 +344,7 @@ gpgcheck=1
 repo_gpgcheck=1
 gpgkey=http://rspamd.com/rpm/gpg.key
 EOD
-        cat <<EOD > ${HOME}/rpm-asan/$d/rspamd.repo
+        cat <<EOD > ${TARGET_DIR}/rpm-asan/$d/rspamd.repo
 [rspamd]
 name=Rspamd stable repository (asan enabled)
 baseurl=http://rspamd.com/rpm-stable-asan/$d/${ARCH}/
@@ -366,7 +354,7 @@ repo_gpgcheck=1
 gpgkey=http://rspamd.com/rpm/gpg.key
 EOD
       else
-        cat <<EOD > ${HOME}/rpm/$d/rspamd-experimental.repo
+        cat <<EOD > ${TARGET_DIR}/rpm/$d/rspamd-experimental.repo
 [rspamd-experimental]
 name=Rspamd experimental repository
 baseurl=http://rspamd.com/rpm/$d/${ARCH}/
@@ -375,7 +363,7 @@ gpgcheck=1
 repo_gpgcheck=1
 gpgkey=http://rspamd.com/rpm/gpg.key
 EOD
-        cat <<EOD > ${HOME}/rpm-asan/$d/rspamd-experimental.repo
+        cat <<EOD > ${TARGET_DIR}/rpm-asan/$d/rspamd-experimental.repo
 [rspamd-experimental]
 name=Rspamd experimental repository (asan enabled)
 baseurl=http://rspamd.com/rpm-asan/$d/${ARCH}/
@@ -409,17 +397,17 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
   if [ $DEBIAN -ne 0 ] ; then
     if [ -n "${STABLE}" ] ; then
       rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" ${RSYNC_ARGS} \
-        ${HOME}/repos/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_STABLE}
+        ${TARGET_DIR}/repos/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_STABLE}
       if [ ${NO_ASAN} -ne 1 ] ; then
         rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" ${RSYNC_ARGS} \
-          ${HOME}/repos-asan/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_STABLE}-asan
+          ${TARGET_DIR}/repos-asan/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_STABLE}-asan
       fi
     else
       rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" ${RSYNC_ARGS} \
-        ${HOME}/repos/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_UNSTABLE}
+        ${TARGET_DIR}/repos/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_UNSTABLE}
       if [ ${NO_ASAN} -ne 1 ] ; then
         rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" ${RSYNC_ARGS} \
-          ${HOME}/repos-asan/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_UNSTABLE}-asan
+          ${TARGET_DIR}/repos-asan/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_UNSTABLE}-asan
       fi
     fi
   fi
@@ -428,17 +416,17 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
     for d in $DISTRIBS_RPM ; do
       if [ -n "${STABLE}" ] ; then
         rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
-          ${HOME}/rpm/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_STABLE}/$d/
+          ${TARGET_DIR}/rpm/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_STABLE}/$d/
         if [ ${NO_ASAN} -ne 1 ] ; then
           rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
-            ${HOME}/rpm-asan/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_STABLE}-asan/$d/
+            ${TARGET_DIR}/rpm-asan/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_STABLE}-asan/$d/
         fi
       else
         rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
-          ${HOME}/rpm/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}/$d/
+          ${TARGET_DIR}/rpm/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}/$d/
         if [ ${NO_ASAN} -ne 1 ] ; then
           rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
-            ${HOME}/rpm-asan/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}-asan/$d/
+            ${TARGET_DIR}/rpm-asan/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}-asan/$d/
         fi
       fi
     done
