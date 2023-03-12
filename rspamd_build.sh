@@ -2,6 +2,7 @@
 
 DEBIAN=1
 RPM=1
+ARM=1
 BUILD_STAGE=0
 SIGN_STAGE=0
 UPLOAD_STAGE=0
@@ -24,6 +25,7 @@ usage()
   printf "\t--upload-host: use the following upload host\n"
   printf "\t--no-inc: do not increase version for rolling release\n"
   printf "\t--no-delete: do not delete old files during rsync\n"
+  printf "\t--no-arm: do not build aarch64 packages\n"
   printf "\t--dist: touch the specified dist only\n"
   printf ""
 }
@@ -67,6 +69,9 @@ while [ "$1" != "" ]; do
       ;;
     --no-delete)
       NO_DELETE=1
+      ;;
+    --no-arm)
+      ARM=0
       ;;
     --upload-host)
       UPLOAD_HOST="${VALUE}"
@@ -115,32 +120,34 @@ get_rspamd() {
 
 
 get_rspamd $SSH_HOST_X86
-get_rspamd $SSH_HOST_AARCH64
+if [ ${ARM} -ne 0 ] ; then
+  get_rspamd $SSH_HOST_AARCH64
+fi
 gh_hash=`$SSH_CMD $SSH_HOST_X86 "cd rspamd ; git rev-parse --short HEAD"`
 
 build_rspamd_deb() {
   HOST=$1
-  DIST=$2
+  DISTNAME=$2
   DISTVER=$3
   RSPAMD_REL=$4
-  echo "Building rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DIST}-${DISTVER}"
+  echo "Building rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DISTNAME}-${DISTVER}"
   $SSH_CMD $HOST "rm -fr ./rspamd/build"
   $SSH_CMD $HOST "(cd ./rspamd && env CHANGELOG_NAME=\"Vsevolod Stakhov\" CHANGELOG_EMAIL=vsevolod@highsecure.ru ASAN=0 LUAJIT=1 DOCKER_REPO=\"rspamd/pkg\" PRESERVE_ENVVARS=\"LUAJIT,ASAN\" \
-    VERSION=${RSPAMD_VER} RELEASE=${RSPAMD_REL} OS=${DIST} DIST=${DISTVER} ../packpack/packpack)" || { echo "Failed to build: rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DIST}-${DISTVER}" ; exit 1 ; }
-  $SCP_CMD $HOST:rspamd/build/\*.deb ${TARGET_DIR}/${DIST}-${DISTVER}/
+    VERSION=${RSPAMD_VER} RELEASE=${RSPAMD_REL} OS=${DISTNAME} DIST=${DISTVER} ../packpack/packpack)" || { echo "Failed to build: rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DISTNAME}-${DISTVER}" ; exit 1 ; }
+  $SCP_CMD $HOST:rspamd/build/\*.deb ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
 }
 
 build_rspamd_rpm() {
   HOST=$1
-  DIST=$2
+  DISTNAME=$2
   DISTVER=$3
   RSPAMD_REL=$4
   $SSH_CMD $HOST "rm -fr ./rspamd/build"
   $SSH_CMD $HOST "(cd ./rspamd && env CHANGELOG_NAME=\"Vsevolod Stakhov\" CHANGELOG_EMAIL=vsevolod@highsecure.ru ASAN=0 LUAJIT=1 DOCKER_REPO=\"rspamd/pkg\" PRESERVE_ENVVARS=\"LUAJIT,ASAN\" \
-    VERSION=${RSPAMD_VER} RELEASE=${RSPAMD_REL} OS=${DIST} DIST=${DISTVER} ../packpack/packpack)" || { echo "Failed to build: rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DIST}-${DISTVER}" ; exit 1 ; } 
+    VERSION=${RSPAMD_VER} RELEASE=${RSPAMD_REL} OS=${DISTNAME} DIST=${DISTVER} ../packpack/packpack)" || { echo "Failed to build: rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DISTNAME}-${DISTVER}" ; exit 1 ; } 
   $SSH_CMD $HOST "(cd ./rspamd && env CHANGELOG_NAME=\"Vsevolod Stakhov\" CHANGELOG_EMAIL=vsevolod@highsecure.ru ASAN=1 LUAJIT=1 DOCKER_REPO=\"rspamd/pkg\" PRESERVE_ENVVARS=\"LUAJIT,ASAN\" \
-    VERSION=${RSPAMD_VER} RELEASE=${RSPAMD_REL} OS=${DIST} DIST=${DISTVER} ../packpack/packpack)" || { echo "Failed to build: rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DIST}-${DISTVER}" ; exit 1 ; }
-  $SCP_CMD $HOST:rspamd/build/\*.rpm ${TARGET_DIR}/${DIST}-${DISTVER}/
+    VERSION=${RSPAMD_VER} RELEASE=${RSPAMD_REL} OS=${DISTNAME} DIST=${DISTVER} ../packpack/packpack)" || { echo "Failed to build: rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DISTNAME}-${DISTVER}" ; exit 1 ; }
+  $SCP_CMD $HOST:rspamd/build/\*.rpm ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
 }
 
 
@@ -196,7 +203,9 @@ if [ $BUILD_STAGE -eq 1 ] ; then
     fi
     mkdir -p ${TARGET_DIR}/${_distro}-${_ver} ; rm -f ${TARGET_DIR}/${_distro}-${_ver}/*.deb
     build_rspamd_deb $SSH_HOST_X86 $_distro $_ver $pkg_version
-    build_rspamd_deb $SSH_HOST_AARCH64 $_distro $_ver $pkg_version
+    if [ ${ARM} -ne 0 ] ; then
+      build_rspamd_deb $SSH_HOST_AARCH64 $_distro $_ver $pkg_version
+    fi
 
   done
   for d in $DISTRIBS_RPM ; do    
@@ -207,9 +216,11 @@ if [ $BUILD_STAGE -eq 1 ] ; then
     else
       pkg_version="${_version}.git${gh_hash}"
     fi
-    mkdir -p ${TARGET_DIR}/${_distro}-${_ver} ; rm -f ${TARGET_DIR}/${_distro}-${_ver}/*.deb
+    mkdir -p ${TARGET_DIR}/${_distro}-${_ver} ; rm -f ${TARGET_DIR}/${_distro}-${_ver}/*.rpm
     build_rspamd_rpm $SSH_HOST_X86 $_distro $_ver $pkg_version
-    build_rspamd_rpm $SSH_HOST_AARCH64 $_distro $_ver $pkg_version
+    if [ ${ARM} -ne 0 ] ; then
+      build_rspamd_rpm $SSH_HOST_AARCH64 $_distro $_ver $pkg_version
+    fi
   done
 
 
