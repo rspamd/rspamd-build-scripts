@@ -3,6 +3,7 @@
 DEBIAN=1
 RPM=1
 ARM=1
+FETCH_STAGE=0
 BUILD_STAGE=0
 SIGN_STAGE=0
 UPLOAD_STAGE=0
@@ -19,6 +20,7 @@ usage()
   printf "\t--deb: build debian packages\n"
   printf "\t--rpm: build rpm packages\n"
   printf "\t--stable: build stable packages\n"
+  printf "\t--fetch: do fetch/git update step\n"
   printf "\t--build: do build step\n"
   printf "\t--sign: do sign step\n"
   printf "\t--upload: upload packages using ssh\n"
@@ -54,12 +56,16 @@ while [ "$1" != "" ]; do
       export STABLE=1
       ;;
     --all)
+      FETCH_STAGE=1
       BUILD_STAGE=1
       SIGN_STAGE=1
       UPLOAD_STAGE=1
       ;;
     --build)
       BUILD_STAGE=1
+      ;;
+    --fetch)
+      FETCH_STAGE=1
       ;;
     --sign)
       SIGN_STAGE=1
@@ -119,9 +125,11 @@ get_rspamd() {
 }
 
 
-get_rspamd $SSH_HOST_X86
-if [ ${ARM} -ne 0 ] ; then
-  get_rspamd $SSH_HOST_AARCH64
+if [ $FETCH_STAGE -eq 1 ] ; then
+  get_rspamd $SSH_HOST_X86
+  if [ ${ARM} -ne 0 ] ; then
+    get_rspamd $SSH_HOST_AARCH64
+  fi
 fi
 gh_hash=`$SSH_CMD $SSH_HOST_X86 "cd rspamd ; git rev-parse --short HEAD"`
 
@@ -300,54 +308,32 @@ EOD
   fi # DEBIAN == 0
 
   if [ $RPM -ne 0 ] ; then
+    mkdir -p ${TARGET_DIR}/rpm
     rm -f ${TARGET_DIR}/rpm/gpg.key || true
-    rm -f ${TARGET_DIR}/rpm-asan/gpg.key || true
-    ARCH="x86_64"
-    mkdir -p ${TARGET_DIR}/rpm/ || true
-    mkdir -p ${TARGET_DIR}/rpm-asan/ || true
     gpg --armor --output ${TARGET_DIR}/rpm/gpg.key --export $KEY
-    gpg --armor --output ${TARGET_DIR}/rpm-asan/gpg.key --export $KEY
-    for d in $DISTRIBS_RPM_FULL ; do
-      rm -fr ${TARGET_DIR}/rpm/$d/ || true
-      rm -fr ${TARGET_DIR}/rpm-asan/$d/ || true
-      mkdir -p ${TARGET_DIR}/rpm/$d/${ARCH} || true
-      mkdir -p ${TARGET_DIR}/rpm-asan/$d/${ARCH} || true
-    done
+
     for d in $DISTRIBS_RPM ; do
-      cp ${TARGET_DIR}/${d}/${BUILD_DIR}/RPMS/${ARCH}/*.rpm ${TARGET_DIR}/rpm/$d/${ARCH}
-      for p in ${TARGET_DIR}/rpm/$d/${ARCH}/*.rpm ; do
-        ./rpm_sign.expect $p
+      for ARCH in x86_64 aarch64 ; do
+        find ${TARGET_DIR}/$d -name \*${ARCH}.rpm | grep . > /dev/null
+        if [ $? -eq 0 ] ; then
+          rm -fr ${TARGET_DIR}/rpm/$d/${ARCH} || true
+          mkdir -p ${TARGET_DIR}/rpm/$d/${ARCH}
+          cp ${TARGET_DIR}/$d/*${ARCH}.rpm ${TARGET_DIR}/rpm/$d/$ARCH/
+          for p in `find ${TARGET_DIR}/rpm/$d/ -name \*${ARCH}.rpm` ; do
+            ./rpm_sign.expect $p
+          done
+          (cd ${TARGET_DIR}/rpm/$d/${ARCH} && createrepo --compress-type gz . )
+
+          gpg --default-key ${KEY} --detach-sign --armor \
+            ${TARGET_DIR}/rpm/$d/${ARCH}/repodata/repomd.xml
+        fi
       done
-      (cd ${TARGET_DIR}/rpm/$d/${ARCH} && createrepo --compress-type gz . )
-
-      gpg --default-key ${KEY} --detach-sign --armor \
-        ${TARGET_DIR}/rpm/$d/${ARCH}/repodata/repomd.xml
-
-      if [ ${NO_ASAN} -ne 1 ] ; then
-        cp ${TARGET_DIR}/${d}/${BUILD_DIR}-asan/RPMS/${ARCH}/*.rpm ${TARGET_DIR}/rpm-asan/$d/${ARCH}
-        for p in ${TARGET_DIR}/rpm-asan/$d/${ARCH}/*.rpm ; do
-          ./rpm_sign.expect $p
-        done
-        (cd ${TARGET_DIR}/rpm-asan/$d/${ARCH} && createrepo --compress-type gz . )
-
-        gpg --default-key ${KEY} --detach-sign --armor \
-          ${TARGET_DIR}/rpm-asan/$d/${ARCH}/repodata/repomd.xml
-      fi
 
       if [ -n "${STABLE}" ] ; then
         cat <<EOD > ${TARGET_DIR}/rpm/$d/rspamd.repo
 [rspamd]
 name=Rspamd stable repository
-baseurl=http://rspamd.com/rpm-stable/$d/${ARCH}/
-enabled=1
-gpgcheck=1
-repo_gpgcheck=1
-gpgkey=http://rspamd.com/rpm/gpg.key
-EOD
-        cat <<EOD > ${TARGET_DIR}/rpm-asan/$d/rspamd.repo
-[rspamd]
-name=Rspamd stable repository (asan enabled)
-baseurl=http://rspamd.com/rpm-stable-asan/$d/${ARCH}/
+baseurl=http://rspamd.com/rpm-stable/$d/\$basearch
 enabled=1
 gpgcheck=1
 repo_gpgcheck=1
@@ -357,16 +343,7 @@ EOD
         cat <<EOD > ${TARGET_DIR}/rpm/$d/rspamd-experimental.repo
 [rspamd-experimental]
 name=Rspamd experimental repository
-baseurl=http://rspamd.com/rpm/$d/${ARCH}/
-enabled=1
-gpgcheck=1
-repo_gpgcheck=1
-gpgkey=http://rspamd.com/rpm/gpg.key
-EOD
-        cat <<EOD > ${TARGET_DIR}/rpm-asan/$d/rspamd-experimental.repo
-[rspamd-experimental]
-name=Rspamd experimental repository (asan enabled)
-baseurl=http://rspamd.com/rpm-asan/$d/${ARCH}/
+baseurl=http://rspamd.com/rpm/$d/\$basearch
 enabled=1
 gpgcheck=1
 repo_gpgcheck=1
