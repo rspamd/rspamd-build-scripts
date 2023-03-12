@@ -6,6 +6,8 @@ export DISTRIBS_DEB="ubuntu-bionic \
   debian-buster \
   debian-bullseye"
 export DISTRIBS_RPM="centos-7 centos-8 fedora-37"
+# Old distributives that are just broken on aarch64
+export ARM_BLACKLIST="ubuntu-bionic"
 
 # Can be overriden (e.g. adding a username)
 export SSH_CMD="ssh"

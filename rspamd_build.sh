@@ -221,7 +221,10 @@ if [ $BUILD_STAGE -eq 1 ] ; then
     rm -f ${TARGET_DIR}/${_distro}-${_ver}/*tar*
     build_rspamd_deb $SSH_HOST_X86 $_distro $_ver $pkg_version
     if [ ${ARM} -ne 0 ] ; then
-      build_rspamd_deb $SSH_HOST_AARCH64 $_distro $_ver $pkg_version
+      echo $ARM_BLACKLIST | grep $d > /dev/null
+      if [ $? -ne 0 ] ; then
+        build_rspamd_deb $SSH_HOST_AARCH64 $_distro $_ver $pkg_version
+      fi
     fi
 
   done
@@ -236,7 +239,10 @@ if [ $BUILD_STAGE -eq 1 ] ; then
     mkdir -p ${TARGET_DIR}/${_distro}-${_ver} ; rm -f ${TARGET_DIR}/${_distro}-${_ver}/*.rpm
     build_rspamd_rpm $SSH_HOST_X86 $_distro $_ver $pkg_version
     if [ ${ARM} -ne 0 ] ; then
-      build_rspamd_rpm $SSH_HOST_AARCH64 $_distro $_ver $pkg_version
+      echo $ARM_BLACKLIST | grep $d > /dev/null
+      if [ $? -ne 0 ] ; then
+        build_rspamd_rpm $SSH_HOST_AARCH64 $_distro $_ver $pkg_version
+      fi
     fi
   done
 
@@ -295,10 +301,13 @@ EOD
       reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan_${_pkg_ver}_amd64.deb
       reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan-dbg_${_pkg_ver}_amd64.deb
       if [ $ARM -ne 0 ] ; then
-        reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd_${_pkg_ver}_arm64.deb
-        reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-dbg_${_pkg_ver}_arm64.deb
-        reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan_${_pkg_ver}_arm64.deb
-        reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan-dbg_${_pkg_ver}_arm64.deb
+        echo $ARM_BLACKLIST | grep $d > /dev/null
+        if [ $? -ne 0 ] ; then
+          reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd_${_pkg_ver}_arm64.deb
+          reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-dbg_${_pkg_ver}_arm64.deb
+          reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan_${_pkg_ver}_arm64.deb
+          reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan-dbg_${_pkg_ver}_arm64.deb
+        fi
       fi
       reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedsc $_distname ${TARGET_DIR}/$d/rspamd_${_pkg_ver}.dsc
 
