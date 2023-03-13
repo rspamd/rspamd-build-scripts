@@ -7,7 +7,8 @@ FETCH_STAGE=0
 BUILD_STAGE=0
 SIGN_STAGE=0
 UPLOAD_STAGE=0
-UPLOAD_SUFFIX="dist/"
+DIST=0
+NO_DELETE=0
 LOG="./rspamd_build.log"
 
 usage()
@@ -384,17 +385,9 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
     if [ -n "${STABLE}" ] ; then
       rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" ${RSYNC_ARGS} \
         ${TARGET_DIR}/repos/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_STABLE}
-      if [ ${NO_ASAN} -ne 1 ] ; then
-        rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" ${RSYNC_ARGS} \
-          ${TARGET_DIR}/repos-asan/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_STABLE}-asan
-      fi
     else
       rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" ${RSYNC_ARGS} \
         ${TARGET_DIR}/repos/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_UNSTABLE}
-      if [ ${NO_ASAN} -ne 1 ] ; then
-        rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" ${RSYNC_ARGS} \
-          ${TARGET_DIR}/repos-asan/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_UNSTABLE}-asan
-      fi
     fi
   fi
 
@@ -403,17 +396,9 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
       if [ -n "${STABLE}" ] ; then
         rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
           ${TARGET_DIR}/rpm/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_STABLE}/$d/
-        if [ ${NO_ASAN} -ne 1 ] ; then
-          rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
-            ${TARGET_DIR}/rpm-asan/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_STABLE}-asan/$d/
-        fi
       else
         rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
           ${TARGET_DIR}/rpm/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}/$d/
-        if [ ${NO_ASAN} -ne 1 ] ; then
-          rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
-            ${TARGET_DIR}/rpm-asan/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}-asan/$d/
-        fi
       fi
     done
   fi

@@ -14,6 +14,17 @@ export SSH_CMD="ssh"
 export SCP_CMD="scp"
 export TARGET_DIR="./out"
 
+# From old upload system (should be refactored one day)
+export TARGET_DEB_STABLE="apt-stable"
+export TARGET_DEB_UNSTABLE="apt"
+export TARGET_RPM_STABLE="rpm-stable"
+export TARGET_RPM_UNSTABLE="rpm"
+export SSH_KEY_DEB_STABLE="${HOME}/.ssh/identity.repo-deb-stable"
+export SSH_KEY_DEB_UNSTABLE="${HOME}/.ssh/identity.repo-deb-unstable"
+export SSH_KEY_RPM_STABLE="${HOME}/.ssh/identity.repo-rpm-stable"
+export SSH_KEY_RPM_UNSTABLE="${HOME}/.ssh/identity.repo-rpm-unstable"
+export UPLOAD_SUFFIX="rspamd.com/dist/"
+
 # Must be overriden
 export SSH_HOST_X86="example.com"
 export SSH_HOST_AARCH64="example.com"
