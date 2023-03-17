@@ -13,6 +13,7 @@ export ARM_BLACKLIST="ubuntu-bionic"
 export SSH_CMD="ssh"
 export SCP_CMD="scp"
 export TARGET_DIR="./out"
+export MAINTAINER_EMAIL="vsevolod@rspamd.com"
 
 # From old upload system (should be refactored one day)
 export TARGET_DEB_STABLE="apt-stable"
