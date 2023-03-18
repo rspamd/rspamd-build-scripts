@@ -106,7 +106,7 @@ get_rspamd() {
   $SSH_CMD $HOST git clone --recursive https://github.com/vstakhov/rspamd rspamd
 
   if [ -n "${STABLE}" ] ; then
-    $SSH_CMD $HOST -c "( cd rspamd && git checkout ${RSPAMD_VER} )"
+    $SSH_CMD $HOST "cd rspamd && git checkout ${RSPAMD_VER}"
 
     if [ $? -ne 0 ] ; then
       exit 1
@@ -147,7 +147,7 @@ build_rspamd_deb() {
   $SCP_CMD $HOST:rspamd/build/\*.dsc ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
   $SCP_CMD $HOST:rspamd/build/\*changes ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
   $SCP_CMD $HOST:rspamd/build/\*buildinfo ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
-  $SCP_CMD $HOST:rspamd/build/\*tar* ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
+  $SCP_CMD $HOST:rspamd/build/\*tar\* ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
 }
 
 build_rspamd_rpm() {
@@ -271,7 +271,7 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
     for d in $DISTRIBS_DEB ; do
       _distname=`echo $d | sed -r -e 's/ubuntu-|debian-//'`
       if [ -n "${STABLE}" ] ; then
-        _pkg_ver="${RSPAMD_VER}-${_version}~${_distname}"
+        _pkg_ver="${RSPAMD_VER}-${STABLE_VER}~${gh_hash}~${_distname}"
         _repo_descr="Apt repository for rspamd stable builds"
       else
         _pkg_ver="${RSPAMD_VER}-0~git${_version}~${gh_hash}~${_distname}"

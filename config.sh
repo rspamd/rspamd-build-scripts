@@ -6,8 +6,8 @@ export DISTRIBS_DEB="ubuntu-bionic \
   debian-buster \
   debian-bullseye"
 export DISTRIBS_RPM="centos-7 centos-8"
-# Old distributives that are just broken on aarch64
-export ARM_BLACKLIST="ubuntu-bionic"
+# Old distributives that are just broken on aarch64 (e.g. old libc++)
+export ARM_BLACKLIST="ubuntu-bionic debian-buster"
 
 # Can be overriden (e.g. adding a username)
 export SSH_CMD="ssh"
@@ -30,8 +30,8 @@ export UPLOAD_SUFFIX="rspamd.com/dist/"
 export SSH_HOST_X86="example.com"
 export SSH_HOST_AARCH64="example.com"
 
-export RSPAMD_VER_UNSTABLE="3.5"
-export RSPAMD_VER_STABLE="3.4"
+export RSPAMD_VER_UNSTABLE="3.6"
+export RSPAMD_VER_STABLE="3.5"
 
 if [ -n "${STABLE}" ] ; then
   export RSPAMD_VER="${RSPAMD_VER_STABLE}"
