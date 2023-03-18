@@ -1,9 +1,7 @@
 #!/bin/sh
 
-export DISTRIBS_DEB="ubuntu-bionic \
-  ubuntu-focal \
+export DISTRIBS_DEB="ubuntu-focal \
   ubuntu-jammy \
-  debian-buster \
   debian-bullseye"
 export DISTRIBS_RPM="centos-7 centos-8"
 # Old distributives that are just broken on aarch64 (e.g. old libc++)
