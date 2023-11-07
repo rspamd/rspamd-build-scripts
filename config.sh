@@ -29,8 +29,8 @@ export UPLOAD_SUFFIX="rspamd.com/dist/"
 export SSH_HOST_X86="example.com"
 export SSH_HOST_AARCH64="example.com"
 
-export RSPAMD_VER_UNSTABLE="3.7"
-export RSPAMD_VER_STABLE="3.6"
+export RSPAMD_VER_UNSTABLE="3.7.4"
+export RSPAMD_VER_STABLE="3.7.3"
 
 if [ -n "${STABLE}" ] ; then
   export RSPAMD_VER="${RSPAMD_VER_STABLE}"
