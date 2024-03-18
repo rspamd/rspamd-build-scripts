@@ -10,6 +10,7 @@ UPLOAD_STAGE=0
 DIST=0
 NO_DELETE=0
 LOG="./rspamd_build.log"
+DOCKER_IMAGE="ghcr.io/rspamd/rspamd-build-docker"
 
 usage()
 {
@@ -141,7 +142,7 @@ build_rspamd_deb() {
   RSPAMD_REL=$4
   echo "Building rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DISTNAME}-${DISTVER}"
   $SSH_CMD $HOST "rm -fr ./rspamd/build"
-  $SSH_CMD $HOST "(cd ./rspamd && env CHANGELOG_NAME=\"Vsevolod Stakhov\" CHANGELOG_EMAIL=${MAINTAINER_EMAIL} ASAN=0 LUAJIT=1 DOCKER_IMAGE=\"${DISTNAME}-${DISTVER}\" DOCKER_REPO=\"rspamd/pkg\" PRESERVE_ENVVARS=\"LUAJIT,ASAN\" \
+  $SSH_CMD $HOST "(cd ./rspamd && env CHANGELOG_NAME=\"Vsevolod Stakhov\" CHANGELOG_EMAIL=${MAINTAINER_EMAIL} ASAN=0 LUAJIT=1 DOCKER_IMAGE=\"${DISTNAME}-${DISTVER}\" DOCKER_REPO=\"${DOCKER_IMAGE}\" PRESERVE_ENVVARS=\"LUAJIT,ASAN\" \
     VERSION=${RSPAMD_VER} RELEASE=${RSPAMD_REL} OS=${DISTNAME} DIST=${DISTVER} ../packpack/packpack)" || { echo "Failed to build: rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DISTNAME}-${DISTVER}" ; exit 1 ; }
   $SCP_CMD $HOST:rspamd/build/\*.deb ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
   $SCP_CMD $HOST:rspamd/build/\*.dsc ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
@@ -156,9 +157,9 @@ build_rspamd_rpm() {
   DISTVER=$3
   RSPAMD_REL=$4
   $SSH_CMD $HOST "rm -fr ./rspamd/build"
-  $SSH_CMD $HOST "(cd ./rspamd && env CHANGELOG_NAME=\"Vsevolod Stakhov\" CHANGELOG_EMAIL=${MAINTAINER_EMAIL} ASAN=0 LUAJIT=1 DOCKER_IMAGE=\"${DISTNAME}-${DISTVER}\" DOCKER_REPO=\"rspamd/pkg\" PRESERVE_ENVVARS=\"LUAJIT,ASAN\" \
+  $SSH_CMD $HOST "(cd ./rspamd && env CHANGELOG_NAME=\"Vsevolod Stakhov\" CHANGELOG_EMAIL=${MAINTAINER_EMAIL} ASAN=0 LUAJIT=1 DOCKER_IMAGE=\"${DISTNAME}-${DISTVER}\" DOCKER_REPO=\"${DOCKER_IMAGE}\" PRESERVE_ENVVARS=\"LUAJIT,ASAN\" \
     VERSION=${RSPAMD_VER} RELEASE=${RSPAMD_REL} OS=${DISTNAME} DIST=${DISTVER} ../packpack/packpack)" || { echo "Failed to build: rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DISTNAME}-${DISTVER}" ; exit 1 ; } 
-  $SSH_CMD $HOST "(cd ./rspamd && env CHANGELOG_NAME=\"Vsevolod Stakhov\" CHANGELOG_EMAIL=${MAINTAINER_EMAIL} ASAN=1 LUAJIT=1 DOCKER_IMAGE=\"${DISTNAME}-${DISTVER}\" DOCKER_REPO=\"rspamd/pkg\" PRESERVE_ENVVARS=\"LUAJIT,ASAN\" \
+  $SSH_CMD $HOST "(cd ./rspamd && env CHANGELOG_NAME=\"Vsevolod Stakhov\" CHANGELOG_EMAIL=${MAINTAINER_EMAIL} ASAN=1 LUAJIT=1 DOCKER_IMAGE=\"${DISTNAME}-${DISTVER}\" DOCKER_REPO=\"${DOCKER_IMAGE}\" PRESERVE_ENVVARS=\"LUAJIT,ASAN\" \
     VERSION=${RSPAMD_VER} RELEASE=${RSPAMD_REL} OS=${DISTNAME} DIST=${DISTVER} ../packpack/packpack)" || { echo "Failed to build: rspamd-${RSPAMD_VER}-${RSPAMD_REL} for ${DISTNAME}-${DISTVER}" ; exit 1 ; }
   $SCP_CMD $HOST:rspamd/build/\*.rpm ${TARGET_DIR}/${DISTNAME}-${DISTVER}/
 }
