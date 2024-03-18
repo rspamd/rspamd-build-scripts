@@ -30,7 +30,7 @@ export SSH_HOST_X86="example.com"
 export SSH_HOST_AARCH64="example.com"
 
 export RSPAMD_VER_UNSTABLE="3.9.0"
-export RSPAMD_VER_STABLE="3.8.3"
+export RSPAMD_VER_STABLE="3.8.4"
 
 if [ -n "${STABLE}" ] ; then
   export RSPAMD_VER="${RSPAMD_VER_STABLE}"
