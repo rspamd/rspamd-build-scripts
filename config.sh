@@ -2,6 +2,7 @@
 
 export DISTRIBS_DEB="ubuntu-focal \
   ubuntu-jammy \
+  ubuntu-noble \
   debian-bullseye \
   debian-bookworm"
 export DISTRIBS_RPM="centos-7 centos-8 centos-9"
