@@ -5,7 +5,7 @@ export DISTRIBS_DEB="ubuntu-focal \
   ubuntu-noble \
   debian-bullseye \
   debian-bookworm"
-export DISTRIBS_RPM="centos-7 centos-8 centos-9"
+export DISTRIBS_RPM="centos-8 centos-9"
 # Old distributives that are just broken on aarch64 (e.g. old libc++)
 export ARM_BLACKLIST="ubuntu-bionic debian-buster"
 
