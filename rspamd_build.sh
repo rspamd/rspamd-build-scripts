@@ -111,6 +111,10 @@ get_rspamd() {
   $SSH_CMD $HOST rm -fr rspamd rspamd.build
   $SSH_CMD $HOST git clone --recursive ${GIT_REPO} rspamd
 
+  if [ $? -ne 0 ] ; then
+    exit 1
+  fi
+
   if [ -n "${STABLE}" ] ; then
     $SSH_CMD $HOST "cd rspamd && git checkout ${RSPAMD_VER}"
 
