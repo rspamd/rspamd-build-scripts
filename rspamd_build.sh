@@ -11,6 +11,7 @@ DIST=0
 NO_DELETE=0
 LOG="./rspamd_build.log"
 DOCKER_IMAGE="ghcr.io/rspamd/rspamd-build-docker"
+CONFIG_FILE="./config.sh"
 
 usage()
 {
@@ -31,6 +32,7 @@ usage()
   printf "\t--no-delete: do not delete old files during rsync\n"
   printf "\t--no-arm: do not build aarch64 packages\n"
   printf "\t--dist: touch the specified dist only\n"
+  printf "\t--config: use specific config instead of 'config.sh'\n"
   printf ""
 }
 
@@ -88,6 +90,9 @@ while [ "$1" != "" ]; do
       DIST=1
       DISTS="${VALUE}"
       ;;
+    --config)
+      CONFIG_FILE="${VALUE}"
+      ;;
     *)
       echo "ERROR: unknown parameter \"$PARAM\""
       usage
@@ -97,14 +102,14 @@ while [ "$1" != "" ]; do
   shift
 done
 
-. ./config.sh
+. ${CONFIG_FILE}
 
 rm ${LOG} || true
 
 get_rspamd() {
   HOST=$1
   $SSH_CMD $HOST rm -fr rspamd rspamd.build
-  $SSH_CMD $HOST git clone --recursive https://github.com/vstakhov/rspamd rspamd
+  $SSH_CMD $HOST git clone --recursive ${GIT_REPO} rspamd
 
   if [ -n "${STABLE}" ] ; then
     $SSH_CMD $HOST "cd rspamd && git checkout ${RSPAMD_VER}"
@@ -113,9 +118,9 @@ get_rspamd() {
       exit 1
     fi
     
-    if [ -d ./patches-stable/ ] ; then
+    if [ -d "${PATCHES_DIR}"] ; then
       shopt -s nullglob
-      for p in ./patches-stable/* ; do
+      for p in ${PATCHES_DIR}/* ; do
         echo "Applying patch $p"
         cat $p | $SSH_CMD $HOST "( cd rspamd && patch -p1 )"
         if [ $? -ne 0 ] ; then
@@ -266,7 +271,7 @@ if [ ${SIGN_STAGE} -eq 1 ] ; then
   if [ $DEBIAN -ne 0 ] ; then
     mkdir -p ${TARGET_DIR}/repos/
     rm -fr ${TARGET_DIR}/repos/*
-    gpg --armor --output ${TARGET_DIR}/repos/gpg.key --export $KEY
+    gpg --armor --output ${TARGET_DIR}/repos/rspamd.asc --export $KEY
     mkdir ${TARGET_DIR}/repos/conf || true
 
     for d in $DISTRIBS_DEB ; do
@@ -320,7 +325,7 @@ EOD
 
   if [ $RPM -ne 0 ] ; then
     mkdir -p ${TARGET_DIR}/rpm
-    rm -f ${TARGET_DIR}/rpm/gpg.key || true
+    rm -f ${TARGET_DIR}/rpm/rspamd.asc || true
     gpg --armor --output ${TARGET_DIR}/rpm/rspamd.asc --export $KEY
 
     for d in $DISTRIBS_RPM ; do
