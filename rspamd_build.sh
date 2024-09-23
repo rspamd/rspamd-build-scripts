@@ -321,7 +321,7 @@ EOD
   if [ $RPM -ne 0 ] ; then
     mkdir -p ${TARGET_DIR}/rpm
     rm -f ${TARGET_DIR}/rpm/gpg.key || true
-    gpg --armor --output ${TARGET_DIR}/rpm/gpg.key --export $KEY
+    gpg --armor --output ${TARGET_DIR}/rpm/rspamd.asc --export $KEY
 
     for d in $DISTRIBS_RPM ; do
       for ARCH in x86_64 aarch64 ; do
@@ -348,7 +348,7 @@ baseurl=http://rspamd.com/rpm-stable/$d/\$basearch
 enabled=1
 gpgcheck=1
 repo_gpgcheck=1
-gpgkey=http://rspamd.com/rpm/gpg.key
+gpgkey=http://rspamd.com/rpm/rspamd.asc
 EOD
       else
         cat <<EOD > ${TARGET_DIR}/rpm/$d/rspamd-experimental.repo
@@ -358,7 +358,7 @@ baseurl=http://rspamd.com/rpm/$d/\$basearch
 enabled=1
 gpgcheck=1
 repo_gpgcheck=1
-gpgkey=http://rspamd.com/rpm/gpg.key
+gpgkey=http://rspamd.com/rpm/rspamd.asc
 EOD
       fi
 
