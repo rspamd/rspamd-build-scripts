@@ -302,25 +302,38 @@ Description: ${_repo_descr}
 SignWith: ${KEY}
 
 EOD
-      dpkg-sig -k $KEY --batch=1 --sign builder ${TARGET_DIR}/$d/rspamd_${_pkg_ver}*.deb
-      dpkg-sig -k $KEY --batch=1 --sign builder ${TARGET_DIR}/$d/rspamd-asan_${_pkg_ver}*.deb
-      dpkg-sig -k $KEY --batch=1 --sign builder ${TARGET_DIR}/$d/rspamd-dbg_${_pkg_ver}*.deb
-      dpkg-sig -k $KEY --batch=1 --sign builder ${TARGET_DIR}/$d/rspamd-asan-dbg_${_pkg_ver}*.deb
-      debsign --re-sign -k $KEY ${TARGET_DIR}/$d/rspamd_${_pkg_ver}*.changes
-      reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd_${_pkg_ver}_amd64.deb
-      reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-dbg_${_pkg_ver}_amd64.deb
-      reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan_${_pkg_ver}_amd64.deb
-      reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan-dbg_${_pkg_ver}_amd64.deb
-      if [ $ARM -ne 0 ] ; then
-        echo $ARM_BLACKLIST | grep $d > /dev/null
-        if [ $? -ne 0 ] ; then
-          reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd_${_pkg_ver}_arm64.deb
-          reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-dbg_${_pkg_ver}_arm64.deb
-          reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan_${_pkg_ver}_arm64.deb
-          reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname ${TARGET_DIR}/$d/rspamd-asan-dbg_${_pkg_ver}_arm64.deb
+      # Copy old packages remaining to include them into the repo
+      if [ ${NO_DELETE} -eq 0 ] ; then
+        if [ -n "${STABLE}" ] ; then
+          rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" --ignore-existing ${RSYNC_ARGS} \
+            ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_STABLE}/* ${TARGET_DIR}/repos/
+        else
+          rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" --ignore-existing ${RSYNC_ARGS} \
+            ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_UNSTABLE}/* ${TARGET_DIR}/repos/
         fi
       fi
-      reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedsc $_distname ${TARGET_DIR}/$d/rspamd_${_pkg_ver}.dsc
+
+      for deb_pkg in ${TARGET_DIR}/$d/rspamd_*.deb ; do
+          dpkg-sig -k $KEY --batch=1 --sign builder $deb_pkg
+          reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname $deb_pkg
+      done
+      for deb_pkg in ${TARGET_DIR}/$d/rspamd-dbg_*.deb ; do
+          dpkg-sig -k $KEY --batch=1 --sign builder $deb_pkg
+          reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname $deb_pkg
+      done
+      for deb_pkg in ${TARGET_DIR}/$d/rspamd-asan_*.deb ; do
+          dpkg-sig -k $KEY --batch=1 --sign builder $deb_pkg
+          reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedeb $_distname $deb_pkg
+      done
+      for deb_pkg in ${TARGET_DIR}/$d/rspamd-asan-dbg_*.deb ; do
+          dpkg-sig -k $KEY --batch=1 --sign builder $deb_pkg
+          reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname $deb_pkg
+      done
+      for deb_dsc in ${TARGET_DIR}/$d/rspamd_*.dsc ; do
+        reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedsc $_distname 
+      done
+
+      debsign --re-sign -k $KEY ${TARGET_DIR}/$d/rspamd_*.changes
 
       gpg -u 0x$KEY -sb $_repodir/dists/$_distname/Release && \
         mv $_repodir/dists/$_distname/Release.sig $_repodir/dists/$_distname/Release.gpg
@@ -334,11 +347,26 @@ EOD
 
     for d in $DISTRIBS_RPM ; do
       for ARCH in x86_64 aarch64 ; do
+        rm -fr ${TARGET_DIR}/rpm/$d/${ARCH} || true
+        mkdir -p ${TARGET_DIR}/rpm/$d/${ARCH}
+      done
+
+      # Copy old stuff
+      if [ ${NO_DELETE} -eq 0 ] ; then
+        if [ -n "${STABLE}" ] ; then
+          rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} --ignore-existing \
+            ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_STABLE}/$d/* ${TARGET_DIR}/rpm/$d/
+        else
+          rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} --ignore-existing \
+            ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}/$d/* ${TARGET_DIR}/rpm/$d/
+        fi
+      fi
+
+      for ARCH in x86_64 aarch64 ; do
         find ${TARGET_DIR}/$d -name \*${ARCH}.rpm | grep . > /dev/null
         if [ $? -eq 0 ] ; then
-          rm -fr ${TARGET_DIR}/rpm/$d/${ARCH} || true
-          mkdir -p ${TARGET_DIR}/rpm/$d/${ARCH}
-          cp ${TARGET_DIR}/$d/*${ARCH}.rpm ${TARGET_DIR}/rpm/$d/$ARCH/
+          cp -f ${TARGET_DIR}/$d/*${ARCH}.rpm ${TARGET_DIR}/rpm/$d/$ARCH/
+
           for p in `find ${TARGET_DIR}/rpm/$d/ -name \*${ARCH}.rpm` ; do
             ./rpm_sign.expect $p
           done

@@ -32,7 +32,7 @@ export UPLOAD_SUFFIX="rspamd.com/dist/"
 export SSH_HOST_X86="example.com"
 export SSH_HOST_AARCH64="example.com"
 
-export RSPAMD_VER_UNSTABLE="3.9.2"
+export RSPAMD_VER_UNSTABLE="3.10.0"
 export RSPAMD_VER_STABLE="3.9.1"
 
 if [ -n "${STABLE}" ] ; then
@@ -44,6 +44,10 @@ fi
 
 export KEY="3FA347D5E599BE4595CA2576FFA232EDBF21E25E"
 
-if [ -f "./config.local.sh" ] ; then
-  . ./config.local.sh
+if [ -n "${LOCAL_CONFIG_FILE}" ] ; then
+  if [ -f "./config.local.sh" ] ; then
+    . ./config.local.sh
+  fi
+else
+  . ${LOCAL_CONFIG_FILE}
 fi
