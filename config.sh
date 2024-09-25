@@ -44,7 +44,7 @@ fi
 
 export KEY="3FA347D5E599BE4595CA2576FFA232EDBF21E25E"
 
-if [ -n "${LOCAL_CONFIG_FILE}" ] ; then
+if [ -z "${LOCAL_CONFIG_FILE}" ] ; then
   if [ -f "./config.local.sh" ] ; then
     . ./config.local.sh
   fi
