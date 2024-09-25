@@ -122,7 +122,7 @@ get_rspamd() {
       exit 1
     fi
     
-    if [ -d "${PATCHES_DIR}"] ; then
+    if [ -d "${PATCHES_DIR}" ] ; then
       shopt -s nullglob
       for p in ${PATCHES_DIR}/* ; do
         echo "Applying patch $p"
