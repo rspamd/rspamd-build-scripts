@@ -144,6 +144,30 @@ if [ $FETCH_STAGE -eq 1 ] ; then
 fi
 gh_hash=`$SSH_CMD $SSH_HOST_X86 "cd rspamd ; git rev-parse --short HEAD"`
 
+retry_rsync() {
+  local RETRY_INTERVAL=5
+  local MAX_ATTEMPTS=100
+  local attempt=0
+
+  while true; do
+    rsync "$@"
+    
+    local RSYNC_EXIT_CODE=$?
+    
+    if [ $RSYNC_EXIT_CODE -eq 0 ]; then
+      return 0
+    fi
+
+    if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
+      exit 1
+    fi
+
+    attempt=$((attempt + 1))
+    sleep $RETRY_INTERVAL
+  done
+}
+
+
 build_rspamd_deb() {
   HOST=$1
   DISTNAME=$2
@@ -204,6 +228,7 @@ if [ ${DIST} -ne 0 ] ; then
 fi
 
 if [ $BUILD_STAGE -eq 1 ] ; then
+  rm -fr ${TARGET_DIR}
   mkdir -p ${TARGET_DIR}
   if [ -n "${STABLE}" ] ; then
     _version="${STABLE_VER}"
@@ -305,10 +330,10 @@ EOD
       # Copy old packages remaining to include them into the repo
       if [ ${NO_DELETE} -eq 0 ] ; then
         if [ -n "${STABLE}" ] ; then
-          rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" --ignore-existing ${RSYNC_ARGS} \
+          retry_rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" --ignore-existing ${RSYNC_ARGS} \
             ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_STABLE}/* ${TARGET_DIR}/repos/
         else
-          rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" --ignore-existing ${RSYNC_ARGS} \
+          retry_rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" --ignore-existing ${RSYNC_ARGS} \
             ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_UNSTABLE}/* ${TARGET_DIR}/repos/
         fi
       fi
@@ -330,7 +355,7 @@ EOD
           reprepro  -P extra -S debug -b $_repodir -v --keepunreferencedfiles includedeb $_distname $deb_pkg
       done
       for deb_dsc in ${TARGET_DIR}/$d/rspamd_*.dsc ; do
-        reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedsc $_distname 
+        reprepro  -P extra -S mail -b $_repodir -v --keepunreferencedfiles includedsc $_distname $deb_dsc
       done
 
       debsign --re-sign -k $KEY ${TARGET_DIR}/$d/rspamd_*.changes
@@ -354,10 +379,10 @@ EOD
       # Copy old stuff
       if [ ${NO_DELETE} -eq 0 ] ; then
         if [ -n "${STABLE}" ] ; then
-          rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} --ignore-existing \
+          retry_rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} --ignore-existing \
             ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_STABLE}/$d/* ${TARGET_DIR}/rpm/$d/
         else
-          rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} --ignore-existing \
+          retry_rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} --ignore-existing \
             ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}/$d/* ${TARGET_DIR}/rpm/$d/
         fi
       fi
@@ -421,10 +446,10 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
 
   if [ $DEBIAN -ne 0 ] ; then
     if [ -n "${STABLE}" ] ; then
-      rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" ${RSYNC_ARGS} \
+      retry_rsync -e "ssh -i ${SSH_KEY_DEB_STABLE}" ${RSYNC_ARGS} \
         ${TARGET_DIR}/repos/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_STABLE}
     else
-      rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" ${RSYNC_ARGS} \
+      retry_rsync -e "ssh -i ${SSH_KEY_DEB_UNSTABLE}" ${RSYNC_ARGS} \
         ${TARGET_DIR}/repos/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_DEB_UNSTABLE}
     fi
   fi
@@ -432,10 +457,10 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
   if [ $RPM -ne 0 ] ; then
     for d in $DISTRIBS_RPM ; do
       if [ -n "${STABLE}" ] ; then
-        rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
+        retry_rsync -e "ssh -i ${SSH_KEY_RPM_STABLE}" ${RSYNC_ARGS} \
           ${TARGET_DIR}/rpm/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_STABLE}/$d/
       else
-        rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
+        retry_rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
           ${TARGET_DIR}/rpm/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}/$d/
       fi
     done
