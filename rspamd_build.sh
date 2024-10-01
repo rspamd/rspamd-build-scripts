@@ -464,5 +464,9 @@ if [ ${UPLOAD_STAGE} -eq 1 ] ; then
           ${TARGET_DIR}/rpm/$d/* ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}/$d/
       fi
     done
+    retry_rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
+      ${TARGET_DIR}/rpm/rspamd.asc ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_UNSTABLE}
+    retry_rsync -e "ssh -i ${SSH_KEY_RPM_UNSTABLE}" ${RSYNC_ARGS} \
+      ${TARGET_DIR}/rpm/rspamd.asc ${UPLOAD_HOST}:${UPLOAD_SUFFIX}${TARGET_RPM_STABLE}
   fi
 fi
